@@ -1,0 +1,565 @@
+/* Telas do restaurante (pedidos, mesas e cardápio). Usa só as variáveis de ui/estilo.css. */
+
+.sem-quebra {
+  white-space: nowrap;
+}
+
+/* ---------- Fila de pedidos (colunas por situação) ---------- */
+
+.fila {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fila-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.9rem;
+  background: var(--cor-superficie-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+}
+
+.fila-coluna-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.fila-contagem {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.fila-vazia {
+  margin: 0;
+  padding: 0.75rem 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* ---------- Cartão de pedido ---------- */
+
+.pedido {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.9rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  box-shadow: var(--sombra);
+}
+
+.pedido-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pedido-mesa {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.pedido-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+}
+
+.pedido-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+  color: var(--cor-texto);
+}
+
+.pedido-itens li {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.pedido-quantidade {
+  flex: none;
+  min-width: 2rem;
+  font-weight: 700;
+  color: var(--cor-primaria);
+}
+
+.pedido-item-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.pedido-item-valor {
+  flex: none;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.pedido-nota {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--cor-laranja-suave);
+  color: var(--cor-texto);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.pedido-item-nota {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--cor-aviso);
+}
+
+.pedido-rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.pedido-total {
+  font-weight: 700;
+  color: var(--cor-texto);
+  white-space: nowrap;
+}
+
+.pedido-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.pedido-acoes .botao {
+  min-height: 38px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.88rem;
+}
+
+/* ---------- Mesas ---------- */
+
+.mesas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.mesa {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 1rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.mesa-ocupada {
+  border-color: color-mix(in srgb, var(--cor-primaria) 45%, var(--cor-borda));
+}
+
+.mesa-chamando {
+  border-color: var(--cor-laranja);
+  box-shadow: 0 0 0 3px var(--cor-laranja-suave);
+}
+
+.mesa-inativa {
+  opacity: 0.6;
+}
+
+.mesa-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mesa-numero {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.mesa-ocupada .mesa-numero {
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+}
+
+.mesa-identidade {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.mesa-nome {
+  display: block;
+  font-weight: 700;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.mesa-detalhe {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--cor-texto-suave);
+}
+
+.mesa-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mesa-total {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+  white-space: nowrap;
+}
+
+.mesa-chamado {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--cor-laranja-suave);
+  color: var(--cor-texto);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.mesa-chamado svg {
+  color: var(--cor-laranja);
+}
+
+.mesa-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: auto;
+}
+
+.mesa-acoes .botao {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.88rem;
+}
+
+/* ---------- QR code da mesa ---------- */
+
+.qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.qr-imagem {
+  width: min(260px, 100%);
+  height: auto;
+  padding: 10px;
+  border-radius: var(--raio-pequeno);
+  background: #ffffff;
+  border: 1px solid var(--cor-borda);
+}
+
+.qr-endereco {
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  background: var(--cor-superficie-2);
+  border: 1px solid var(--cor-borda);
+  font-size: 0.85rem;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.qr-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* ---------- Conta da mesa ---------- */
+
+.conta-pedido + .conta-pedido {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.conta-pedido-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.86rem;
+  color: var(--cor-texto-suave);
+}
+
+.conta-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 0.8rem 1rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-texto);
+  font-weight: 700;
+}
+
+.conta-total strong {
+  font-size: 1.35rem;
+  color: var(--cor-primaria);
+}
+
+/* ---------- Cardápio (gestão) ---------- */
+
+.produto-celula {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.produto-miniatura {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+}
+
+.produto-miniatura img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.produto-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.produto-nome {
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.produto-descricao {
+  font-size: 0.82rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.imagem-campo {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.imagem-previa {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 88px;
+  height: 88px;
+  overflow: hidden;
+  border-radius: var(--raio-pequeno);
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+}
+
+.imagem-previa img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.imagem-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---------- Escolha de itens (novo pedido) ---------- */
+
+.itens-lista {
+  display: flex;
+  flex-direction: column;
+  max-height: 46vh;
+  margin: 0.5rem 0 1rem;
+  overflow-y: auto;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+}
+
+.itens-categoria {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 0.45rem 0.8rem;
+  background: var(--cor-superficie-2);
+  border-bottom: 1px solid var(--cor-borda);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.itens-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.8rem;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.itens-linha:last-child {
+  border-bottom: 0;
+}
+
+.itens-linha-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.itens-linha-nome {
+  font-weight: 600;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.itens-linha-preco {
+  font-size: 0.84rem;
+  color: var(--cor-texto-suave);
+}
+
+.quantidade {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 0.25rem;
+}
+
+.quantidade-botao {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 10px;
+  background: var(--cor-superficie);
+  color: var(--cor-primaria);
+  cursor: pointer;
+}
+
+.quantidade-botao:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.quantidade-botao:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.quantidade-valor {
+  min-width: 1.8rem;
+  text-align: center;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.itens-resumo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+}

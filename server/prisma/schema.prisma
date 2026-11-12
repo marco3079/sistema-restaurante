@@ -1,0 +1,223 @@
+// CONTRATO DE DADOS do sistema de restaurante.
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+
+// GESTOR administra tudo. GARCOM atende as mesas e os pedidos.
+enum Perfil {
+  GESTOR
+  GARCOM
+}
+
+// Caminho de um pedido: NOVO -> EM_PREPARO -> PRONTO -> ENTREGUE. CANCELADO sai do caminho.
+enum StatusPedido {
+  NOVO
+  EM_PREPARO
+  PRONTO
+  ENTREGUE
+  CANCELADO
+}
+
+// CLIENTE: feito pelo cardápio da mesa. GARCOM: lançado pela equipe.
+enum OrigemPedido {
+  CLIENTE
+  GARCOM
+}
+
+// ---------- Pessoas ----------
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senhaHash String
+  perfil    Perfil
+  ativo     Boolean  @default(true)
+  cpf       String?
+  telefone  String?
+  foto      String? // endereço http(s) ou data URL (imagem reduzida enviada pelo usuário)
+  criadoEm  DateTime @default(now())
+
+  pedidos Pedido[]
+}
+
+// ---------- Cardápio ----------
+
+model Categoria {
+  id    Int     @id @default(autoincrement())
+  nome  String  @unique
+  ordem Int     @default(0)
+  ativa Boolean @default(true)
+  // true = excluída pelo gestor, mas guardada porque há pedidos antigos com produtos dela
+  excluida Boolean @default(false)
+
+  produtos Produto[]
+}
+
+model Produto {
+  id          Int       @id @default(autoincrement())
+  categoriaId Int
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
+  nome        String
+  descricao   String    @default("")
+  preco       Decimal   @db.Decimal(10, 2)
+  imagem      String? // data URL reduzida ou endereço http(s)
+  disponivel  Boolean   @default(true) // false = esgotado (some do cardápio do cliente)
+  ativo       Boolean   @default(true) // false = removido do cardápio (o histórico continua)
+  criadoEm    DateTime  @default(now())
+
+  itens ItemPedido[]
+
+  @@index([categoriaId])
+}
+
+// ---------- Salão ----------
+
+model Mesa {
+  id            Int       @id @default(autoincrement())
+  numero        Int       @unique
+  nome          String? // ex.: "Varanda"
+  lugares       Int       @default(4)
+  codigo        String    @unique // segredo do endereço do cardápio da mesa (QR code)
+  ativa         Boolean   @default(true)
+  chamandoDesde DateTime? // cliente pediu o garçom; null = sem chamado
+  criadaEm      DateTime  @default(now())
+
+  pedidos Pedido[]
+}
+
+// ---------- Pedidos ----------
+
+// A conta de uma mesa é o conjunto de pedidos dela ainda não pagos (pagoEm nulo) e não cancelados.
+model Pedido {
+  id             Int          @id @default(autoincrement())
+  mesaId         Int
+  mesa           Mesa         @relation(fields: [mesaId], references: [id])
+  status         StatusPedido @default(NOVO)
+  origem         OrigemPedido
+  nomeCliente    String?
+  observacao     String?
+  garcomId       Int? // quem lançou (origem GARCOM) ou quem assumiu o pedido
+  garcom         Usuario?     @relation(fields: [garcomId], references: [id])
+  total          Decimal      @db.Decimal(10, 2)
+  pagoEm         DateTime?
+  formaPagamento String?
+  criadoEm       DateTime     @default(now())
+  atualizadoEm   DateTime     @updatedAt
+
+  itens ItemPedido[]
+
+  @@index([mesaId, pagoEm])
+  @@index([status, criadoEm])
+  @@index([criadoEm])
+}
+
+model ItemPedido {
+  id            Int     @id @default(autoincrement())
+  pedidoId      Int
+  pedido        Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  produtoId     Int
+  produto       Produto @relation(fields: [produtoId], references: [id])
+  nomeProduto   String // cópia do nome no momento do pedido
+  precoUnitario Decimal @db.Decimal(10, 2) // cópia do preço no momento do pedido
+  quantidade    Int
+  observacao    String?
+
+  @@index([pedidoId])
+}
+
+// ---------- Log de atividades ----------
+
+// Um registro por atividade na plataforma. Visível só para o GESTOR.
+// Não guarda corpo de requisição nem senha. Registros com mais de 90 dias são apagados.
+model LogAtividade {
+  id          Int      @id @default(autoincrement())
+  criadoEm    DateTime @default(now())
+  usuarioId   Int? // sem relação: o log sobrevive à exclusão do usuário
+  usuarioNome String?
+  perfil      String? // perfil no momento: GESTOR ou GARCOM
+  tipo        String // LOGIN, FALHA_LOGIN, SAIDA, TELA, CONSULTA, CRIACAO, ALTERACAO, EXCLUSAO
+  modulo      String // ex.: pedidos, mesas, cardapio, sessao
+  descricao   String // frase curta em português
+  metodo      String? // GET, POST, PUT, DELETE
+  caminho     String? // caminho da API ou da tela, sem query string
+  status      Int? // código HTTP da resposta
+  duracaoMs   Int?
+  ip          String?
+  navegador   String?
+
+  @@index([criadoEm])
+  @@index([usuarioId, criadoEm])
+  @@index([tipo, criadoEm])
+}
+
+// ===== Configurações da plataforma (linha única, id = 1) =====
+
+model ConfiguracaoPlataforma {
+  id            Int     @id @default(1)
+  nome          String  @default("Sistema de Restaurante")
+  slogan        String  @default("Sabor e atendimento em cada mesa.")
+  logo          String? // data URL (jpeg, png ou webp) ou endereço http(s); null = logo padrão
+  corPrimaria   String  @default("#2563eb")
+  corSecundaria String  @default("#1d4ed8")
+  enderecoSite  String? // endereço público do site, usado nos links dos e-mails e nos QR codes
+
+  smtpServidor       String?
+  smtpPorta          Int     @default(587)
+  smtpSeguro         Boolean @default(false) // true = TLS direto (porta 465)
+  smtpUsuario        String?
+  smtpSenhaCifrada   String? // AES-256-GCM; nunca sai pela API
+  emailRemetente     String?
+  emailNomeRemetente String?
+  emailAtivo         Boolean @default(false)
+
+  emailRecuperacao Boolean @default(true)
+  emailBoasVindas  Boolean @default(true)
+
+  atualizadoEm DateTime @updatedAt
+}
+
+enum TipoTokenSenha {
+  RECUPERACAO
+  BOAS_VINDAS
+}
+
+// Token de uso único para criar ou redefinir a senha por e-mail (só o hash fica no banco).
+model TokenSenha {
+  id        Int            @id @default(autoincrement())
+  usuarioId Int
+  tokenHash String         @unique
+  tipo      TipoTokenSenha
+  expiraEm  DateTime
+  usadoEm   DateTime?
+  criadoEm  DateTime       @default(now())
+
+  @@index([usuarioId])
+}
+
+enum StatusEmail {
+  ENVIADO
+  FALHOU
+}
+
+// Histórico dos e-mails enviados (sem o corpo), para o gestor conferir.
+model EmailEnviado {
+  id       Int         @id @default(autoincrement())
+  para     String
+  assunto  String
+  tipo     String // TESTE, RECUPERACAO, BOAS_VINDAS
+  status   StatusEmail
+  erro     String?
+  criadoEm DateTime    @default(now())
+
+  @@index([criadoEm])
+}

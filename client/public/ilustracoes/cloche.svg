@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 220">
+  <defs>
+    <linearGradient id="c1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5b9bff"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="c2" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#93c5fd"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+    <linearGradient id="c3" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#bfdbfe"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <!-- Ondas de apoio -->
+  <path d="M6 176C40 150 74 196 112 176C150 156 186 198 226 178C254 164 276 168 296 180C290 204 262 214 224 206C186 198 152 216 112 206C72 196 34 212 6 196Z" fill="url(#c3)"/>
+  <path d="M30 156C62 136 92 172 128 156C164 140 198 174 234 158C254 150 270 152 284 160C276 182 250 190 216 182C182 174 150 192 114 184C80 176 50 188 30 176Z" fill="url(#c2)"/>
+  <!-- Bandeja -->
+  <ellipse cx="150" cy="150" rx="118" ry="14" fill="#1e40af"/>
+  <ellipse cx="150" cy="145" rx="118" ry="13" fill="#3b82f6"/>
+  <!-- Cloche -->
+  <path d="M52 142C52 84 96 40 150 40C204 40 248 84 248 142Z" fill="url(#c1)"/>
+  <path d="M78 130C82 96 104 70 134 60" fill="none" stroke="#bfdbfe" stroke-width="9" stroke-linecap="round" opacity="0.8"/>
+  <circle cx="150" cy="28" r="13" fill="#2563eb"/>
+  <circle cx="146" cy="24" r="4" fill="#bfdbfe" opacity="0.9"/>
+</svg>

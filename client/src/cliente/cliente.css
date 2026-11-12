@@ -1,0 +1,519 @@
+/* Cardápio da mesa (página do cliente). Pensado para o celular; usa só as variáveis de ui/estilo.css. */
+
+.mesa-cli {
+  min-height: 100dvh;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
+
+.mesa-cli-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: calc(1rem + env(safe-area-inset-top)) 1rem 2.4rem;
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+}
+
+.mesa-cli-marca {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.mesa-cli-logo {
+  flex: none;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.16);
+  object-fit: cover;
+}
+
+.mesa-cli-marca-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mesa-cli-nome {
+  font-size: 1.05rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-mesa {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.mesa-cli-redondo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  cursor: pointer;
+}
+
+.mesa-cli-redondo:focus-visible,
+.mesa-cli-aba:focus-visible,
+.mesa-cli-categoria:focus-visible,
+.mesa-cli-adicionar:focus-visible,
+.mesa-cli-passo:focus-visible,
+.mesa-cli-barra-botao:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.mesa-cli-redondo:focus-visible {
+  outline-color: #ffffff;
+}
+
+/* ---------- Abas ---------- */
+
+.mesa-cli-abas {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  width: min(100% - 2rem, 720px);
+  margin: -1.6rem auto 0;
+  padding: 0.35rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.mesa-cli-aba {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--altura-toque);
+  padding: 0.4rem 0.3rem;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mesa-cli-aba-ativa {
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+}
+
+.mesa-cli-contador {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--cor-primaria);
+  color: var(--cor-sobre-primaria);
+  font-size: 0.75rem;
+}
+
+/* ---------- Corpo ---------- */
+
+.mesa-cli-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(100% - 2rem, 720px);
+  margin: 1rem auto 0;
+}
+
+.mesa-cli-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  color: var(--cor-texto-suave);
+}
+
+.mesa-cli-vazio svg {
+  color: var(--cor-primaria);
+}
+
+.mesa-cli-vazio h1 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: var(--cor-texto);
+}
+
+.mesa-cli-vazio p {
+  margin: 0;
+}
+
+/* ---------- Categorias ---------- */
+
+.mesa-cli-categorias {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 -1rem;
+  padding: 0.6rem 1rem;
+  overflow-x: auto;
+  background: var(--cor-fundo);
+  scrollbar-width: none;
+}
+
+.mesa-cli-categorias::-webkit-scrollbar {
+  display: none;
+}
+
+.mesa-cli-categoria {
+  flex: none;
+  min-height: 40px;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.mesa-cli-categoria[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+  box-shadow: var(--sombra-primaria);
+}
+
+.mesa-cli-secao {
+  scroll-margin-top: 64px;
+}
+
+.mesa-cli-secao-titulo {
+  margin: 0 0 0.6rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.mesa-cli-produtos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ---------- Produto ---------- */
+
+.mesa-cli-produto {
+  display: flex;
+  align-items: stretch;
+  gap: 0.9rem;
+  padding: 0.9rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.mesa-cli-esgotado {
+  opacity: 0.62;
+}
+
+.mesa-cli-produto-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.mesa-cli-produto-nome {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-produto-descricao {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-produto-base {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+
+.mesa-cli-preco {
+  font-size: 1.02rem;
+  font-weight: 800;
+  color: var(--cor-primaria);
+  white-space: nowrap;
+}
+
+.mesa-cli-foto {
+  flex: none;
+  align-self: center;
+  width: 92px;
+  height: 92px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.mesa-cli-adicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 40px;
+  padding: 0.35rem 0.85rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mesa-cli-quantidade {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  gap: 0.2rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: var(--cor-primaria-suave);
+}
+
+.mesa-cli-passo {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--cor-superficie);
+  color: var(--cor-primaria);
+  cursor: pointer;
+}
+
+.mesa-cli-passo:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mesa-cli-numero {
+  min-width: 1.8rem;
+  text-align: center;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+/* ---------- Barra do pedido ---------- */
+
+.mesa-cli-barra {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--cor-fundo) 65%, transparent);
+}
+
+.mesa-cli-barra-botao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: min(100%, 720px);
+  min-height: 56px;
+  margin: 0 auto;
+  padding: 0.6rem 1.1rem;
+  border: 0;
+  border-radius: var(--raio);
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+  box-shadow: var(--sombra-primaria);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mesa-cli-barra-itens {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.88rem;
+}
+
+/* ---------- Sacola ---------- */
+
+.mesa-cli-sacola {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mesa-cli-sacola li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.mesa-cli-sacola-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mesa-cli-sacola-nome {
+  font-weight: 700;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-sacola-valor {
+  font-size: 0.88rem;
+  color: var(--cor-texto-suave);
+}
+
+.mesa-cli-sacola-vazia,
+.mesa-cli-nota {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: var(--cor-texto-suave);
+}
+
+.mesa-cli-conta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.8rem 1rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-primaria-suave);
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.mesa-cli-corpo > .mesa-cli-conta {
+  margin-bottom: 0;
+}
+
+.mesa-cli-conta strong {
+  font-size: 1.25rem;
+  color: var(--cor-primaria);
+  white-space: nowrap;
+}
+
+/* ---------- Meus pedidos ---------- */
+
+.mesa-cli-pedido {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mesa-cli-pedido-topo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mesa-cli-pedido-meta {
+  display: block;
+  font-size: 0.84rem;
+  color: var(--cor-texto-suave);
+}
+
+.mesa-cli-pedido-frase {
+  margin: 0;
+  font-weight: 600;
+  color: var(--cor-primaria);
+}
+
+.mesa-cli-pedido-itens {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.94rem;
+}
+
+.mesa-cli-pedido-itens li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mesa-cli-pedido-itens li span:last-child {
+  flex: none;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.mesa-cli-pedido-nota {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--cor-laranja-suave);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-pedido-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--cor-borda);
+}
+
+/* ---------- Chamar garçom ---------- */
+
+.mesa-cli-chamar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mesa-cli-chamar p {
+  margin: 0.15rem 0 0;
+  font-size: 0.9rem;
+  color: var(--cor-texto-suave);
+}

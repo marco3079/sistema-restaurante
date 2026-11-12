@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 340">
+  <defs>
+    <linearGradient id="p1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbe7fb"/>
+    </linearGradient>
+    <linearGradient id="p2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="p3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#93c5fd"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Pilha de pratos -->
+  <ellipse cx="200" cy="296" rx="140" ry="24" fill="#1e3a8a" opacity="0.18"/>
+  <ellipse cx="200" cy="282" rx="132" ry="22" fill="#2563eb"/>
+  <ellipse cx="200" cy="274" rx="132" ry="22" fill="url(#p1)"/>
+  <ellipse cx="200" cy="262" rx="124" ry="20" fill="#3b82f6"/>
+  <ellipse cx="200" cy="254" rx="124" ry="20" fill="url(#p1)"/>
+  <ellipse cx="200" cy="242" rx="116" ry="19" fill="#60a5fa"/>
+  <ellipse cx="200" cy="234" rx="116" ry="19" fill="url(#p1)"/>
+  <ellipse cx="200" cy="232" rx="84" ry="12" fill="#e2ecfb"/>
+  <!-- Cloche em cima -->
+  <path d="M112 226C112 168 152 124 200 124C248 124 288 168 288 226Z" fill="url(#p2)"/>
+  <path d="M134 214C138 182 158 158 184 150" fill="none" stroke="#dbeafe" stroke-width="8" stroke-linecap="round" opacity="0.75"/>
+  <circle cx="200" cy="112" r="12" fill="#2563eb"/>
+  <!-- Vapor -->
+  <path d="M176 84C166 70 186 62 176 46" fill="none" stroke="url(#p3)" stroke-width="7" stroke-linecap="round" opacity="0.7"/>
+  <path d="M204 80C194 64 214 54 204 36" fill="none" stroke="url(#p3)" stroke-width="7" stroke-linecap="round" opacity="0.55"/>
+  <path d="M230 86C222 74 238 66 230 52" fill="none" stroke="url(#p3)" stroke-width="7" stroke-linecap="round" opacity="0.4"/>
+</svg>
