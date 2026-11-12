@@ -35,7 +35,12 @@ Não envie senhas reais, tokens válidos nem dados pessoais no relato. Use dados
 - **Segredo JWT**: se `JWT_SECRET` estiver ausente, com menos de 16 caracteres ou com um valor de exemplo, o servidor gera um segredo aleatório a cada subida e avisa no log. Nesse caso, os logins são invalidados quando o servidor reinicia. Defina `JWT_SECRET` no `.env` (o instalador faz isso).
 - **Log de atividades**: toda requisição autenticada à API é registrada com usuário, perfil, ação, módulo, caminho, status e IP. Telas abertas e entradas e saídas também são registradas. O log não guarda corpo de requisição, senha nem token, e os registros são apagados após 90 dias. Só o gestor consulta o log.
 - **Token do Mercado Pago**: fica cifrado no banco com AES-256-GCM, com a mesma chave da senha do e-mail. A API nunca devolve o token: a tela só informa se há um gravado. Só o gestor grava, troca ou apaga.
-- **Cobrança**: o valor cobrado é sempre o total da conta calculado no servidor. O garçom só cobra nas maquinetas que pode usar, e uma mesa tem no máximo uma cobrança em andamento.
+- **Cobrança**: o total da conta, a taxa de serviço e o que falta pagar são sempre calculados no servidor. Uma cobrança parcial nunca passa do que falta. O garçom só cobra nas maquinetas que pode usar, e uma conta tem no máximo uma cobrança em andamento.
+- **Pix**: o QR code é montado no servidor com a chave Pix cadastrada pelo gestor. O sistema não consulta o banco: a confirmação do Pix é manual, feita por quem recebe, e fica registrada no nome dessa pessoa. A chave Pix só é devolvida pela API ao gestor.
+- **Credenciais do emissor de nota fiscal**: ficam cifradas no banco com AES-256-GCM, com a mesma chave da senha do e-mail. A API nunca devolve os valores: a tela só informa quais estão gravadas. Só o gestor grava ou troca.
+- **Webhook fiscal**: o endereço é definido só pelo gestor, e o servidor envia para ele os dados da venda (itens, valores e o CPF/CNPJ que o cliente informou). Use um endereço `https` de um serviço em que você confia.
+- **CPF/CNPJ do cliente**: guardado só quando o cliente pede na nota, na conta daquela mesa. É validado e não aparece no log de atividades.
+- **Fila de espera e reservas**: guardam nome e telefone do cliente. Só o gestor e a recepção acessam.
 - **Perfis de cozinha, limpeza e recepção**: recebem só o que precisam. A limpeza e a recepção não recebem pedidos, valores nem o código do QR code das mesas.
 - **Cardápio da mesa**: as rotas `/api/cliente/mesas/:codigo` são públicas por natureza. O acesso é pelo código secreto da mesa, que vai no QR code; quem tem o código pode ver o cardápio, pedir e ver os pedidos em aberto daquela mesa. O preço é sempre o do servidor, só entram produtos disponíveis, e há limite de pedidos por IP e por mesa. Se um QR code vazar, o gestor gera um novo em **Mesas** e o antigo para de funcionar.
 - **Senha do servidor de e-mail (SMTP)**: fica cifrada no banco com AES-256-GCM. A chave é derivada (SHA-256) do segredo efetivo do servidor, o mesmo que assina os logins. A API nunca devolve a senha: a tela só informa se há uma senha gravada. Se o `JWT_SECRET` for trocado, a senha guardada deixa de ser lida, e o envio falha pedindo que ela seja digitada de novo. Sem `JWT_SECRET` no ambiente (ou com o valor de exemplo), o servidor usa um segredo aleatório a cada subida: nesse caso a senha do e-mail precisa ser digitada de novo depois de cada reinício. O instalador sempre define o segredo.
@@ -61,4 +66,5 @@ Não envie senhas reais, tokens válidos nem dados pessoais no relato. Use dados
 
 ## Pontos de atenção conhecidos
 
+- As integrações de nota fiscal com a Focus NFe e a WebmaniaBR ainda não foram testadas com contas reais. Use o ambiente de homologação antes de emitir notas de verdade.
 - O token de login fica guardado no armazenamento local do navegador. Em um computador compartilhado, faça sempre o logout ao sair.

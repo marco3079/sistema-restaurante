@@ -254,6 +254,67 @@ function TokenMercadoPago({ definido, aoSalvo }: { definido: boolean; aoSalvo: (
   );
 }
 
+// ---------- Taxa de serviço e Pix ----------
+
+function TaxaEPix({ dados, aoSalvo }: { dados: MaquinetasDTO; aoSalvo: (mensagem: string) => void }) {
+  const [taxa, setTaxa] = useState(String(dados.taxaServicoPercentual).replace('.', ','));
+  const [chave, setChave] = useState(dados.pixChave ?? '');
+  const [nome, setNome] = useState(dados.pixNome ?? '');
+  const [cidade, setCidade] = useState(dados.pixCidade ?? '');
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function salvar(e: FormEvent) {
+    e.preventDefault();
+    setErro(null);
+    const percentual = Number(taxa.trim().replace(',', '.'));
+    if (taxa.trim() === '' || Number.isNaN(percentual) || percentual < 0 || percentual > 30) {
+      setErro('Informe a taxa de serviço em porcentagem, de 0 a 30. Use 0 para não cobrar.');
+      return;
+    }
+    setEnviando(true);
+    try {
+      await api.put('/maquinetas/configuracao', {
+        taxaServicoPercentual: percentual,
+        pixChave: chave.trim() || null,
+        pixNome: nome.trim() || null,
+        pixCidade: cidade.trim() || null,
+      });
+      aoSalvo('Taxa de serviço e Pix gravados.');
+    } catch (err) {
+      setErro(mensagemErro(err));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Cartao titulo="Taxa de serviço e Pix">
+      <form onSubmit={salvar}>
+        <p className="maquinetas-texto">
+          A taxa de serviço entra sozinha em toda conta, e o garçom pode tirar quando o cliente pedir. Ela e a gorjeta
+          contam no desempenho de quem recebeu a conta.
+        </p>
+        {erro && <Aviso tipo="erro">{erro}</Aviso>}
+        <Campo rotulo="Taxa de serviço (%)" valor={taxa} aoMudar={setTaxa} obrigatorio />
+        <p className="maquinetas-texto">
+          Com a chave Pix preenchida, a cobrança em Pix mostra um QR code com o valor já definido. O sistema não
+          enxerga a sua conta bancária: quem recebe confere o Pix no aplicativo do banco e confirma na tela.{' '}
+          {dados.pixAtivo ? <Selo cor="verde">QR code ligado</Selo> : <Selo cor="cinza">Sem chave Pix</Selo>}
+        </p>
+        <Campo rotulo="Chave Pix (CPF, CNPJ, e-mail, telefone ou chave aleatória)" valor={chave} aoMudar={setChave} />
+        <div className="ficha-grade">
+          <Campo rotulo="Nome de quem recebe (como no banco)" valor={nome} aoMudar={setNome} />
+          <Campo rotulo="Cidade" valor={cidade} aoMudar={setCidade} />
+        </div>
+        <Botao tipo="submit" desabilitado={enviando}>
+          {enviando ? 'Salvando...' : 'Salvar'}
+        </Botao>
+      </form>
+    </Cartao>
+  );
+}
+
 // ---------- Tela ----------
 
 export function Maquinetas() {
@@ -281,7 +342,7 @@ export function Maquinetas() {
   const semDono = vinculo === 'POR_GARCOM' ? lista.filter((m) => m.ativa && !m.garcom).length : 0;
 
   return (
-    <Pagina titulo="Maquinetas" acoes={<Botao aoClicar={() => setForm({ maquineta: null })}>Nova maquineta</Botao>}>
+    <Pagina titulo="Pagamentos" acoes={<Botao aoClicar={() => setForm({ maquineta: null })}>Nova maquineta</Botao>}>
       {dados.erro && <Aviso tipo="erro">{dados.erro}</Aviso>}
       {dados.carregando && !dados.dados && <Carregando />}
       {aviso && <Aviso tipo="sucesso">{aviso}</Aviso>}
@@ -304,6 +365,14 @@ export function Maquinetas() {
               icone="usuarios"
             />
           </div>
+
+          <TaxaEPix
+            dados={dados.dados}
+            aoSalvo={(mensagem) => {
+              setAviso(mensagem);
+              dados.recarregar();
+            }}
+          />
 
           <Cartao titulo="Como as maquinetas se ligam aos garçons">
             <div className="maquinetas-vinculos" role="radiogroup" aria-label="Como as maquinetas se ligam aos garçons">
@@ -410,7 +479,7 @@ export function Maquinetas() {
 export const rotas: RotaModulo[] = [
   {
     caminho: '/gestor/maquinetas',
-    rotulo: 'Maquinetas',
+    rotulo: 'Pagamentos',
     icone: 'financeiro',
     perfis: ['GESTOR'],
     elemento: <Maquinetas />,

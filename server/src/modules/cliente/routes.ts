@@ -6,6 +6,7 @@ import { criarPedido, incluirPedido, itensSchema, paraPedidoDTO } from '../../li
 import { registrarLog } from '../../lib/log';
 import { fichaDoProduto } from '../../lib/produtos';
 import { ocuparMesa } from '../../lib/mesas';
+import { contaAberta, valoresDaConta } from '../../lib/contas';
 
 // Cardápio da mesa, aberto pelo cliente sem login. O acesso é pelo código da mesa (QR code).
 // Estas rotas nunca devolvem dados da equipe nem de outras mesas.
@@ -145,10 +146,21 @@ publico.get(
       Math.round(
         lista.filter((p) => p.status !== 'CANCELADO').reduce((soma, p) => soma + p.total, 0) * 100
       ) / 100;
+    // Taxa de serviço e o que já foi pago, para o cliente saber quanto falta.
+    const conta = await contaAberta(mesa.id);
+    const pagos = conta
+      ? await prisma.pagamento.aggregate({ where: { contaId: conta.id, status: 'APROVADO' }, _sum: { valor: true } })
+      : null;
+    const valores = valoresDaConta(conta, total, Number(pagos?._sum.valor ?? 0));
     res.set('Cache-Control', 'no-store');
     res.json({
       pedidos: lista.map(paraPedidoCliente),
       total,
+      taxaPercentual: conta && conta.taxaServico ? Number(conta.taxaPercentual) : 0,
+      taxa: valores.taxa,
+      totalComTaxa: valores.total,
+      pago: valores.pago,
+      restante: valores.restante,
       chamando: mesa.chamandoDesde !== null,
     });
   })

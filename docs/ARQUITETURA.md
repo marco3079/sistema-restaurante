@@ -33,7 +33,10 @@ Na subida, o contêiner `api` roda `prisma db push` (cria ou atualiza as tabelas
 | `cardapio` | `/categorias`, `/produtos` | leitura para todos; escrita do gestor; disponibilidade para todos |
 | `mesas` | `/mesas`, conta, chamados, ocupar, liberar, limpa, novo QR code, `/limpeza/mesas`, `/recepcao/mesas` | cadastro do gestor; operação conforme o perfil |
 | `salao` | `/planta`, `/areas` | leitura de gestor e garçom; escrita do gestor |
-| `pagamentos` | `/maquinetas`, `/mesas/:id/cobrar`, `/pagamentos/:id`, `/desempenho` | gestor e garçom; cadastro e desempenho só do gestor |
+| `pagamentos` | `/maquinetas`, `/mesas/:id/conta`, `/mesas/:id/cobrar`, `/pagamentos/:id`, `/desempenho` | gestor e garçom; cadastro e desempenho só do gestor |
+| `recepcao` | `/espera`, `/reservas` | gestor e recepção |
+| `estoque` | `/estoque`, movimentos | gestor; a cozinha só consulta o saldo |
+| `fiscal` | `/fiscal/configuracao`, `/fiscal/contas`, `/contas/:id/nota`, `/notas/:id/consultar` | gestor; o garçom emite a nota da conta |
 | `pedidos` | `/pedidos`, mudança de situação | gestor, garçom e cozinha |
 | `cliente` | `/cliente/mesas/:codigo` (cardápio, pedidos, chamar) | público, pelo código da mesa |
 | `painel` | `/painel/resumo`, `/busca`, `/notificacoes` | gestor e garçom |
@@ -46,7 +49,7 @@ Na subida, o contêiner `api` roda `prisma db push` (cria ou atualiza as tabelas
 - `GARCOM`: lança pedidos, entrega (PRONTO para ENTREGUE), cancela, atende chamados, ocupa e libera mesas, recebe a conta e marca item esgotado.
 - `COZINHA`: vê a fila, inicia o preparo e marca como pronto; marca item esgotado. Não vê mesas, contas nem valores do salão.
 - `LIMPEZA`: vê as mesas aguardando limpeza e marca como limpa. Não vê pedidos nem valores.
-- `RECEPCAO`: vê a situação das mesas (sem pedidos nem valores) e marca a mesa como ocupada.
+- `RECEPCAO`: vê a situação das mesas (sem pedidos nem valores), marca a mesa como ocupada e cuida da fila de espera e das reservas.
 - Cliente: não tem conta. Acessa só as rotas `/api/cliente/mesas/:codigo`, com o código secreto da mesa.
 
 ## Modelo de dados
@@ -59,7 +62,11 @@ Definido em `server/prisma/schema.prisma`.
 - `Area`: nome, cor, retângulo na planta e os garçons responsáveis (vários por área).
 - `Planta`: a imagem da planta do restaurante (linha única).
 - `Maquineta`: nome, operadora, integração (`MANUAL` ou `AUTOMATICA`), identificador e garçom dono.
-- `Pagamento`: cobrança da conta de uma mesa (valor, forma, situação, maquineta, garçom que leva o crédito). Aprovado, marca os pedidos dela como pagos.
+- `Conta`: a conta de uma mesa, do primeiro pedido até ser quitada (`ABERTA` ou `FECHADA`). Guarda se a taxa de serviço está valendo, o percentual e o CPF/CNPJ do cliente. Os pedidos apontam para a conta.
+- `Pagamento`: uma cobrança da conta, total ou parcial (valor, gorjeta, parte que é taxa de serviço, forma, situação, maquineta, código do Pix, garçom que leva o crédito).
+- `MovimentoEstoque`: entrada, saída, acerto, venda ou devolução de um produto, com o saldo depois do movimento.
+- `Espera` e `Reserva`: fila de espera e reservas da recepção.
+- `NotaFiscal`: a nota de uma conta fechada (serviço, situação, número, chave, endereços do DANFE e do XML, mensagem).
 - `Pedido` e `ItemPedido`: o item guarda a cópia do nome e do preço do produto no momento do pedido.
 - `LogAtividade`, `ConfiguracaoPlataforma`, `TokenSenha`, `EmailEnviado`: apoio.
 
@@ -67,10 +74,15 @@ Definido em `server/prisma/schema.prisma`.
 
 - **Situação do pedido**: `NOVO` → `EM_PREPARO` → `PRONTO` → `ENTREGUE`. `CANCELADO` sai do caminho. Pedido pago não muda mais.
 - **Quem muda o pedido**: a cozinha inicia o preparo e marca como pronto; o garçom entrega o que está pronto e cancela; o gestor faz tudo.
-- **Conta da mesa**: é o conjunto de pedidos da mesa ainda não pagos e não cancelados.
+- **Conta da mesa**: nasce com o primeiro pedido e junta os pedidos não cancelados da mesa até ser quitada. Total = produtos + taxa de serviço (se estiver valendo). Os valores são calculados em centavos.
 - **Estado da mesa**: `LIVRE` → `OCUPADA` (cliente chamou ou pediu, ou o garçom ou a recepção marcou) → `LIMPEZA` (conta paga, ou o garçom liberou a mesa sem conta) → `LIVRE` (a limpeza marcou como limpa). Mesa com conta aberta conta sempre como ocupada.
 - **Responsáveis pela mesa**: os garçons da área da mesa; sem área (ou área sem garçom), o garçom do pedido em aberto mais recente; sem nenhum, ninguém. O chamado da mesa vai para os responsáveis e, se não houver, para todos os garçons.
-- **Cobrança**: cria um `Pagamento` com os pedidos da conta. Em dinheiro ou sem maquineta, é aprovado na hora. Com maquineta manual, fica pendente até o garçom confirmar. Com maquineta automática, o servidor consulta a maquineta até ela aprovar, recusar ou cancelar. Aprovado: os pedidos ficam pagos e a mesa vai para a limpeza. Recusado ou cancelado: os pedidos voltam para a conta.
+- **Cobrança**: cria um `Pagamento` do valor pedido (ou do que falta), nunca maior do que o que falta; o que o cliente dá a mais entra como gorjeta. Em dinheiro ou sem maquineta, é aprovado na hora. Com maquineta manual ou Pix com QR code, fica pendente até o garçom confirmar. Com maquineta automática, o servidor consulta a maquineta até ela aprovar, recusar ou cancelar. Quando os pagamentos aprovados cobrem o total, a conta fecha, os pedidos ficam pagos e a mesa vai para a limpeza. Uma conta tem no máximo uma cobrança pendente.
+- **Taxa de serviço e gorjeta**: cada pagamento guarda a parte dele que é taxa de serviço (proporcional) e a gorjeta. As duas contam, no desempenho, para quem recebeu aquele pagamento.
+- **Pix**: o código "copia e cola" (BR Code, com CRC16) é montado no servidor com a chave do restaurante e o valor. Não há consulta a banco: a confirmação é de quem recebe.
+- **Estoque**: produto com controle baixa o saldo na mesma transação do pedido; pedido acima do saldo é recusado; saldo zero tira o item do cardápio; cancelar o pedido devolve o saldo.
+- **Reservas**: a mesma mesa não aceita duas reservas ativas em horários próximos. Acomodar (fila ou reserva) exige mesa livre e a deixa ocupada.
+- **Nota fiscal**: emitida por um serviço externo escolhido pelo gestor (`server/src/lib/fiscal.ts`, um adaptador por serviço). Leva só os produtos; os pagamentos são ajustados ao valor dos produtos. Com a emissão automática ligada, a nota é pedida quando a conta fecha, e uma falha na emissão não desfaz o pagamento.
 - **Crédito do recebimento**: no modo "cada garçom tem a sua", conta para o dono da maquineta; no modo compartilhado (e sem maquineta), para quem cobrou.
 - **Pedido do cliente**: só aceita produto no cardápio e disponível. O preço vem sempre do servidor. Há limite de pedidos por IP e de pedidos em espera por mesa.
 - **Vendas**: o painel soma os pedidos não cancelados pelo dia em que foram feitos, no fuso do servidor (`TZ`).

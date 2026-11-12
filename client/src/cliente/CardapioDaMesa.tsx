@@ -46,6 +46,11 @@ interface PedidoCliente {
 interface PedidosDTO {
   pedidos: PedidoCliente[];
   total: number;
+  taxaPercentual?: number;
+  taxa?: number;
+  totalComTaxa?: number;
+  pago?: number;
+  restante?: number;
   chamando: boolean;
 }
 
@@ -448,9 +453,35 @@ export function CardapioDaMesa() {
                   </article>
                 ))}
                 {pedidos.dados && listaPedidos.length > 0 && (
-                  <div className="mesa-cli-conta">
-                    <span>Total da mesa até agora</span>
-                    <strong>{formatarMoeda(pedidos.dados.total)}</strong>
+                  <div className="mesa-cli-conta-bloco">
+                    {(pedidos.dados.taxa ?? 0) > 0 && (
+                      <>
+                        <div className="mesa-cli-conta-linha">
+                          <span>Pedidos</span>
+                          <span>{formatarMoeda(pedidos.dados.total)}</span>
+                        </div>
+                        <div className="mesa-cli-conta-linha">
+                          <span>Taxa de serviço ({pedidos.dados.taxaPercentual}%, opcional)</span>
+                          <span>{formatarMoeda(pedidos.dados.taxa ?? 0)}</span>
+                        </div>
+                      </>
+                    )}
+                    {(pedidos.dados.pago ?? 0) > 0 && (
+                      <div className="mesa-cli-conta-linha">
+                        <span>Já pago</span>
+                        <span>− {formatarMoeda(pedidos.dados.pago ?? 0)}</span>
+                      </div>
+                    )}
+                    <div className="mesa-cli-conta">
+                      <span>{(pedidos.dados.pago ?? 0) > 0 ? 'Falta pagar' : 'Total da mesa até agora'}</span>
+                      <strong>
+                        {formatarMoeda(
+                          (pedidos.dados.pago ?? 0) > 0
+                            ? (pedidos.dados.restante ?? 0)
+                            : (pedidos.dados.totalComTaxa ?? pedidos.dados.total),
+                        )}
+                      </strong>
+                    </div>
                   </div>
                 )}
               </>

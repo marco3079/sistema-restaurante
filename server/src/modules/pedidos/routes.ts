@@ -4,6 +4,8 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { devolverPorPedido } from '../../lib/estoque';
+import { fecharSeQuitada } from '../../lib/pagamentos';
 import {
   criarPedido,
   incluirPedido,
@@ -98,6 +100,9 @@ router.put(
     if (atual.pagoEm) {
       throw new HttpError(400, 'Este pedido já foi pago e não pode mais mudar.');
     }
+    if (atual.status === 'CANCELADO') {
+      throw new HttpError(400, 'Este pedido foi cancelado. Lance um novo pedido.');
+    }
     const perfil = req.usuario.perfil;
     if (perfil === 'COZINHA') {
       const preparo = status === 'EM_PREPARO' && atual.status === 'NOVO';
@@ -127,6 +132,14 @@ router.put(
       },
       include: incluirPedido,
     });
+    if (status === 'CANCELADO') {
+      // Os itens com controle de estoque voltam para o saldo.
+      await devolverPorPedido(id);
+      // Conta que ficou quitada com o cancelamento (já tinha pagamento parcial) é fechada.
+      if (pedido.contaId) {
+        await fecharSeQuitada(pedido.contaId);
+      }
+    }
     res.json(paraPedidoDTO(pedido));
   })
 );

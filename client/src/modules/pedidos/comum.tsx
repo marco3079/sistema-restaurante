@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { imprimirComanda } from '../../lib/imprimir';
 import { useDados } from '../../lib/useDados';
 import {
   STATUS_PEDIDO,
@@ -152,6 +153,11 @@ export function CartaoPedido({
       <div className="pedido-rodape">
         <span className="pedido-total">{formatarMoeda(pedido.total)}</span>
         <div className="pedido-acoes">
+          {pedido.status !== 'CANCELADO' && (
+            <Botao variante="texto" aoClicar={() => imprimirComanda(pedido)}>
+              Imprimir
+            </Botao>
+          )}
           {podeCancelar && (
             <Botao variante="texto" desabilitado={ocupado} aoClicar={() => mudar('CANCELADO')}>
               Cancelar

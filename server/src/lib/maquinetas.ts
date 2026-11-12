@@ -137,7 +137,8 @@ async function iniciarMercadoPago(pagamento: Pagamento, maquineta: Maquineta, de
       external_reference: `pagamento-${pagamento.id}`,
       expiration_time: 'PT10M',
       description: descricao.slice(0, 150),
-      transactions: { payments: [{ amount: Number(pagamento.valor).toFixed(2) }] },
+      // Na maquineta passa a parte da conta mais a gorjeta.
+      transactions: { payments: [{ amount: (Number(pagamento.valor) + Number(pagamento.gorjeta)).toFixed(2) }] },
       config: {
         point: { terminal_id: maquineta.identificador, print_on_terminal: 'no_ticket' },
         ...(tipo ? { payment_method: { default_type: tipo } } : {}),

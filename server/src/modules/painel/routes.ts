@@ -531,6 +531,22 @@ router.get(
         caminho: `${raiz}/pedidos`,
       })),
     ];
+    if (perfil === 'GESTOR') {
+      const controlados = await prisma.produto.findMany({
+        where: { ativo: true, controlaEstoque: true },
+        select: { id: true, nome: true, estoque: true, estoqueMinimo: true },
+        orderBy: { estoque: 'asc' },
+      });
+      for (const p of controlados.filter((x) => x.estoque <= x.estoqueMinimo).slice(0, 10)) {
+        avisos.push({
+          chave: `estoque-${p.id}-${p.estoque}`,
+          titulo: p.estoque === 0 ? `${p.nome} acabou` : `${p.nome} está acabando`,
+          meta: p.estoque === 0 ? 'Estoque zerado' : `Restam ${p.estoque} (mínimo ${p.estoqueMinimo})`,
+          quando: new Date().toISOString(),
+          caminho: '/gestor/estoque',
+        });
+      }
+    }
     res.json(avisos);
   })
 );

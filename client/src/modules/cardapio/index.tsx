@@ -153,6 +153,10 @@ function FormProduto({
     }
     return inicial;
   });
+  const [controlaEstoque, setControlaEstoque] = useState(produto?.controlaEstoque ?? false);
+  const [estoqueMinimo, setEstoqueMinimo] = useState(String(produto?.estoqueMinimo ?? 0));
+  const [ncm, setNcm] = useState(produto?.ncm ?? '');
+  const [cfop, setCfop] = useState(produto?.cfop ?? '');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -160,6 +164,15 @@ function FormProduto({
     e.preventDefault();
     setErro(null);
     const valor = lerPreco(preco);
+    const minimo = Number(estoqueMinimo.trim() || '0');
+    if (!Number.isInteger(minimo) || minimo < 0) {
+      setErro('O estoque mínimo deve ser um número inteiro.');
+      return;
+    }
+    if (!/^(\d{8})?$/.test(ncm.trim()) || !/^(\d{4})?$/.test(cfop.trim())) {
+      setErro('O NCM tem 8 dígitos e o CFOP tem 4 dígitos (só números).');
+      return;
+    }
     if (valor === null) {
       setErro('Informe o preço em reais, por exemplo 24,90.');
       return;
@@ -198,6 +211,10 @@ function FormProduto({
         tempoPreparoMin: minutos,
         alergenicos: alergenicos.trim() || null,
         nutricao: tabela,
+        controlaEstoque,
+        estoqueMinimo: minimo,
+        ncm: ncm.trim() || null,
+        cfop: cfop.trim() || null,
       };
       if (produto) {
         await api.put(`/produtos/${produto.id}`, corpo);
@@ -256,6 +273,34 @@ function FormProduto({
                 aoMudar={(valor) => setNutricao((atual) => ({ ...atual, [n.chave]: valor }))}
               />
             ))}
+          </div>
+        </fieldset>
+
+        <fieldset className="ficha-grupo">
+          <legend>Estoque e nota fiscal</legend>
+          <Caixa
+            rotulo="Controlar estoque (cada pedido baixa o saldo; ao zerar, o item sai do cardápio)"
+            marcado={controlaEstoque}
+            aoMudar={setControlaEstoque}
+          />
+          {controlaEstoque && (
+            <>
+              <Campo
+                rotulo="Estoque mínimo (avisa quando chegar nele)"
+                tipo="number"
+                valor={estoqueMinimo}
+                aoMudar={setEstoqueMinimo}
+              />
+              <p className="maquinetas-texto">
+                {produto?.controlaEstoque
+                  ? `Saldo atual: ${produto.estoque}. As entradas e saídas são lançadas na tela Estoque.`
+                  : 'O saldo começa em zero: depois de salvar, lance a entrada na tela Estoque para o item aparecer no cardápio.'}
+              </p>
+            </>
+          )}
+          <div className="ficha-grade">
+            <Campo rotulo="NCM (opcional, 8 dígitos)" valor={ncm} aoMudar={setNcm} />
+            <Campo rotulo="CFOP (opcional, 4 dígitos)" valor={cfop} aoMudar={setCfop} />
           </div>
         </fieldset>
 

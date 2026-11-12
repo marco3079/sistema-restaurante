@@ -78,6 +78,56 @@ enum StatusPagamento {
   CANCELADO
 }
 
+enum StatusConta {
+  ABERTA
+  FECHADA
+}
+
+// ENTRADA e SAIDA: lançadas pelo gestor. AJUSTE: acerto de contagem. VENDA e DEVOLUCAO: automáticas, pelos pedidos.
+enum TipoMovimento {
+  ENTRADA
+  SAIDA
+  AJUSTE
+  VENDA
+  DEVOLUCAO
+}
+
+enum StatusEspera {
+  AGUARDANDO
+  CHAMADO
+  ACOMODADO
+  DESISTIU
+}
+
+enum StatusReserva {
+  ATIVA
+  CHEGOU
+  CANCELADA
+  NAO_COMPARECEU
+}
+
+// Serviço que emite a nota fiscal (o gestor escolhe). WEBHOOK: o sistema envia a venda para um endereço
+// do restaurante, o que serve para qualquer emissor.
+enum ProvedorFiscal {
+  NENHUM
+  WEBHOOK
+  FOCUS_NFE
+  WEBMANIA
+}
+
+enum AmbienteFiscal {
+  HOMOLOGACAO
+  PRODUCAO
+}
+
+enum StatusNota {
+  PROCESSANDO
+  AUTORIZADA
+  REJEITADA
+  CANCELADA
+  ERRO
+}
+
 // ---------- Pessoas ----------
 
 model Usuario {
@@ -135,12 +185,22 @@ model Produto {
   fibrasG            Float?
   sodioMg            Float?
 
-  disponivel  Boolean  @default(true) // false = esgotado (some do cardápio do cliente)
-  ativo       Boolean  @default(true) // false = removido do cardápio (o histórico continua)
-  recomendado Boolean  @default(false) // aparece na área "Recomendados" do cardápio do cliente
-  criadoEm    DateTime @default(now())
+  disponivel  Boolean @default(true) // false = esgotado (some do cardápio do cliente)
+  ativo       Boolean @default(true) // false = removido do cardápio (o histórico continua)
+  recomendado Boolean @default(false) // aparece na área "Recomendados" do cardápio do cliente
 
-  itens ItemPedido[]
+  // Estoque: com o controle ligado, cada pedido baixa o saldo e o item esgota sozinho ao zerar.
+  controlaEstoque Boolean @default(false)
+  estoque         Int     @default(0)
+  estoqueMinimo   Int     @default(0) // abaixo ou igual a isto, o gestor é avisado
+
+  // Dados fiscais do item (vazio = usa o padrão das configurações fiscais).
+  ncm      String?
+  cfop     String?
+  criadoEm DateTime @default(now())
+
+  itens      ItemPedido[]
+  movimentos MovimentoEstoque[]
 
   @@index([categoriaId])
 }
@@ -165,6 +225,8 @@ model Mesa {
 
   pedidos    Pedido[]
   pagamentos Pagamento[]
+  contas     Conta[]
+  reservas   Reserva[]
 }
 
 // Área do salão (ex.: Varanda, Salão principal). Pode ter mais de um garçom responsável.
@@ -207,8 +269,8 @@ model Pedido {
   total          Decimal      @db.Decimal(10, 2)
   pagoEm         DateTime?
   formaPagamento String?
-  pagamentoId    Int? // cobrança que cobre este pedido (pendente ou aprovada)
-  pagamento      Pagamento?   @relation(fields: [pagamentoId], references: [id])
+  contaId        Int? // conta da mesa em que este pedido entrou
+  conta          Conta?       @relation(fields: [contaId], references: [id])
   criadoEm       DateTime     @default(now())
   atualizadoEm   DateTime     @updatedAt
 
@@ -233,6 +295,28 @@ model ItemPedido {
   @@index([pedidoId])
 }
 
+// ---------- Conta da mesa ----------
+
+// Abre com o primeiro pedido e fecha quando os pagamentos aprovados cobrem o total
+// (pedidos + taxa de serviço). Pode ser paga em partes.
+model Conta {
+  id             Int         @id @default(autoincrement())
+  mesaId         Int
+  mesa           Mesa        @relation(fields: [mesaId], references: [id])
+  status         StatusConta @default(ABERTA)
+  taxaServico    Boolean     @default(true) // o garçom desliga se o cliente não quiser pagar
+  taxaPercentual Decimal     @db.Decimal(5, 2) // percentual da taxa quando a conta abriu
+  cpfCnpjCliente String? // para a nota fiscal
+  abertaEm       DateTime    @default(now())
+  fechadaEm      DateTime?
+
+  pedidos    Pedido[]
+  pagamentos Pagamento[]
+  nota       NotaFiscal?
+
+  @@index([mesaId, status])
+}
+
 // ---------- Pagamentos ----------
 
 model Maquineta {
@@ -254,7 +338,12 @@ model Pagamento {
   id                Int             @id @default(autoincrement())
   mesaId            Int
   mesa              Mesa            @relation(fields: [mesaId], references: [id])
-  valor             Decimal         @db.Decimal(10, 2)
+  contaId           Int?
+  conta             Conta?          @relation(fields: [contaId], references: [id])
+  valor             Decimal         @db.Decimal(10, 2) // parte da conta que este pagamento quita
+  gorjeta           Decimal         @default(0) @db.Decimal(10, 2) // dada além da conta
+  valorServico      Decimal         @default(0) @db.Decimal(10, 2) // quanto do valor é taxa de serviço
+  pix               String? // Pix copia e cola desta cobrança
   formaPagamento    String // Dinheiro, Pix, Cartão de débito, Cartão de crédito
   status            StatusPagamento @default(PENDENTE)
   maquinetaId       Int? // null = recebido sem maquineta (dinheiro, por exemplo)
@@ -268,10 +357,82 @@ model Pagamento {
   criadoEm          DateTime        @default(now())
   concluidoEm       DateTime?
 
-  pedidos Pedido[]
-
   @@index([garcomId, concluidoEm])
+  @@index([contaId])
   @@index([mesaId, status])
+}
+
+// ---------- Estoque ----------
+
+model MovimentoEstoque {
+  id          Int           @id @default(autoincrement())
+  produtoId   Int
+  produto     Produto       @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  tipo        TipoMovimento
+  quantidade  Int // positivo entra, negativo sai
+  saldo       Int // saldo depois do movimento
+  motivo      String?
+  usuarioNome String?
+  criadoEm    DateTime      @default(now())
+
+  @@index([produtoId, criadoEm])
+}
+
+// ---------- Recepção: fila de espera e reservas ----------
+
+model Espera {
+  id          Int          @id @default(autoincrement())
+  nome        String
+  pessoas     Int
+  telefone    String?
+  observacao  String?
+  status      StatusEspera @default(AGUARDANDO)
+  mesaId      Int? // mesa em que foi acomodado
+  criadoEm    DateTime     @default(now())
+  chamadoEm   DateTime?
+  encerradoEm DateTime?
+
+  @@index([status, criadoEm])
+}
+
+model Reserva {
+  id         Int           @id @default(autoincrement())
+  nome       String
+  pessoas    Int
+  telefone   String?
+  dataHora   DateTime
+  mesaId     Int?
+  mesa       Mesa?         @relation(fields: [mesaId], references: [id])
+  observacao String?
+  status     StatusReserva @default(ATIVA)
+  criadoEm   DateTime      @default(now())
+
+  @@index([dataHora])
+}
+
+// ---------- Nota fiscal ----------
+
+// Uma nota por conta fechada, emitida pelo serviço que o gestor conectou.
+model NotaFiscal {
+  id             Int            @id @default(autoincrement())
+  contaId        Int            @unique
+  conta          Conta          @relation(fields: [contaId], references: [id])
+  provedor       ProvedorFiscal
+  ambiente       AmbienteFiscal
+  referencia     String         @unique // identificação da nota no emissor
+  status         StatusNota
+  numero         String?
+  serie          String?
+  chave          String?
+  urlDanfe       String?
+  urlXml         String?
+  mensagem       String?
+  cpfCnpjCliente String?
+  valor          Decimal        @db.Decimal(10, 2)
+  criadaEm       DateTime       @default(now())
+  atualizadaEm   DateTime       @updatedAt
+
+  @@index([criadaEm])
 }
 
 // ---------- Log de atividades ----------
@@ -324,6 +485,24 @@ model ConfiguracaoPlataforma {
 
   vinculoMaquineta        VinculoMaquineta @default(COMPARTILHADA)
   mercadoPagoTokenCifrado String? // AES-256-GCM; nunca sai pela API
+
+  // Taxa de serviço das contas novas (0 = sem taxa) e Pix do restaurante.
+  taxaServicoPercentual Decimal @default(10) @db.Decimal(5, 2)
+  pixChave              String?
+  pixNome               String? // nome de quem recebe, como aparece no aplicativo do banco
+  pixCidade             String?
+
+  // Nota fiscal.
+  fiscalProvedor            ProvedorFiscal @default(NENHUM)
+  fiscalAmbiente            AmbienteFiscal @default(HOMOLOGACAO)
+  fiscalCredenciaisCifradas String? // JSON com as credenciais do emissor, AES-256-GCM; nunca sai pela API
+  fiscalWebhookUrl          String?
+  fiscalCnpj                String?
+  fiscalEmissaoAutomatica   Boolean        @default(false) // emite ao fechar a conta
+  fiscalNcmPadrao           String         @default("21069090")
+  fiscalCfopPadrao          String         @default("5102")
+  fiscalCsosnPadrao         String         @default("102")
+  fiscalClasseImposto       String? // referência da classe de imposto (WebmaniaBR)
 
   atualizadoEm DateTime @updatedAt
 }

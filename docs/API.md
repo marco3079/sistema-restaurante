@@ -85,17 +85,51 @@ Ficha do prato, aceita em `POST` e `PUT /produtos` e devolvida em todas as leitu
 
 | Método | Rota | Acesso | O que faz |
 |---|---|---|---|
-| GET | `/maquinetas` | gestor, garçom | `{ vinculo, maquinetas }`; o garçom recebe só as que pode usar |
-| PUT | `/maquinetas/configuracao` | gestor | `{ vinculo? (POR_GARCOM ou COMPARTILHADA), mercadoPagoToken? }` (o token nunca é devolvido) |
+| GET | `/maquinetas` | gestor, garçom | `{ vinculo, maquinetas, taxaServicoPercentual, pixAtivo, notaFiscalAtiva }`; o garçom recebe só as maquinetas que pode usar; a chave Pix só vai para o gestor |
+| PUT | `/maquinetas/configuracao` | gestor | `{ vinculo?, mercadoPagoToken?, taxaServicoPercentual? (0 a 30), pixChave?, pixNome?, pixCidade? }` (o token nunca é devolvido) |
 | GET | `/maquinetas/terminais-mercado-pago` | gestor | terminais Point da conta do token |
 | POST | `/maquinetas` | gestor | `{ nome, operadora, integracao, identificador?, garcomId? }` |
 | PUT | `/maquinetas/:id` | gestor | altera |
 | DELETE | `/maquinetas/:id` | gestor | exclui (só sem pagamentos) |
-| POST | `/mesas/:id/cobrar` | gestor, garçom | `{ formaPagamento, maquinetaId? }` → pagamento `APROVADO` (dinheiro ou sem maquineta) ou `PENDENTE` |
+| PUT | `/mesas/:id/conta` | gestor, garçom | `{ taxaServico?, cpfCnpjCliente? }`: tira ou repõe a taxa de serviço e grava o CPF/CNPJ da nota |
+| POST | `/mesas/:id/cobrar` | gestor, garçom | `{ formaPagamento, maquinetaId?, valor?, gorjeta? }`; sem `valor`, cobra o que falta. Pagamento `APROVADO` (dinheiro ou sem maquineta) ou `PENDENTE` (maquineta, ou Pix com QR code, que vem em `pix`). A conta fecha quando o total é pago |
 | GET | `/pagamentos/:id` | gestor, garçom | situação do pagamento; na maquineta automática, consulta a maquineta |
-| POST | `/pagamentos/:id/confirmar` | gestor, garçom | maquineta manual: `{ codigoAutorizacao? }` aprova |
+| POST | `/pagamentos/:id/confirmar` | gestor, garçom | maquineta manual ou Pix com QR code: `{ codigoAutorizacao? }` aprova |
 | POST | `/pagamentos/:id/cancelar` | gestor, garçom | `{ recusado? }`: desiste da cobrança; a conta volta a ficar aberta |
-| GET | `/desempenho?dias=` | gestor | pedidos atendidos e contas recebidas por garçom no período |
+| GET | `/desempenho?dias=` | gestor | pedidos atendidos, contas recebidas, taxa de serviço e gorjetas por garçom no período |
+
+## Fila de espera e reservas
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET | `/espera` | gestor, recepção | `{ fila, esperaMediaMin, acomodadosHoje }` |
+| POST | `/espera` | gestor, recepção | `{ nome, pessoas, telefone?, observacao? }` |
+| PUT | `/espera/:id/status` | gestor, recepção | `{ status: CHAMADO, ACOMODADO ou DESISTIU, mesaId? }`; acomodar exige uma mesa livre, que fica ocupada |
+| GET | `/reservas?dia=AAAA-MM-DD` | gestor, recepção | reservas do dia |
+| POST | `/reservas` | gestor, recepção | `{ nome, pessoas, dataHora, mesaId?, telefone?, observacao? }`; recusa (`409`) a mesma mesa em horário próximo |
+| PUT | `/reservas/:id` | gestor, recepção | altera a reserva |
+| PUT | `/reservas/:id/status` | gestor, recepção | `{ status: CHEGOU, CANCELADA ou NAO_COMPARECEU, mesaId? }`; `CHEGOU` ocupa a mesa |
+
+## Estoque
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET | `/estoque` | gestor, cozinha | produtos com controle de estoque, saldo, mínimo e situação (`OK`, `BAIXO`, `ZERADO`) |
+| GET | `/estoque/:id/movimentos` | gestor | histórico do item |
+| POST | `/estoque/:id/movimentos` | gestor | `{ tipo: ENTRADA, SAIDA ou AJUSTE, quantidade, motivo? }`; no `AJUSTE`, a quantidade é o saldo contado |
+
+O controle é ligado no produto (`PUT /produtos/:id` com `controlaEstoque`, `estoqueMinimo`, `ncm`, `cfop`).
+
+## Nota fiscal
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET | `/fiscal/configuracao` | gestor | serviço, ambiente, CNPJ, padrões fiscais e quais credenciais estão gravadas (os valores nunca são devolvidos) |
+| PUT | `/fiscal/configuracao` | gestor | `{ provedor (NENHUM, WEBHOOK, FOCUS_NFE, WEBMANIA), ambiente, cnpj, webhookUrl, emissaoAutomatica, ncmPadrao, cfopPadrao, csosnPadrao, classeImposto, credenciais? }` |
+| GET | `/fiscal/contas?dias=` | gestor | contas pagas no período, com valores, formas de pagamento e nota |
+| POST | `/contas/:id/nota` | gestor, garçom | emite a nota da conta fechada |
+| GET | `/contas/:id/nota` | gestor, garçom | nota da conta |
+| POST | `/notas/:id/consultar` | gestor | consulta no serviço a nota que ficou em processamento |
 
 ## Pedidos
 

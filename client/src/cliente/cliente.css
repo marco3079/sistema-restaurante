@@ -491,6 +491,7 @@
   color: var(--cor-texto);
 }
 
+.mesa-cli-conta-bloco > .mesa-cli-conta,
 .mesa-cli-corpo > .mesa-cli-conta {
   margin-bottom: 0;
 }
@@ -966,4 +967,21 @@
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--cor-primaria);
+}
+
+/* ---------- Conta da mesa com taxa de serviço ---------- */
+
+.mesa-cli-conta-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.mesa-cli-conta-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0 0.2rem;
+  font-size: 0.92rem;
+  color: var(--cor-texto-suave);
 }

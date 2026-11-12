@@ -5,8 +5,10 @@ import { useAtualizacao } from '../../lib/useAtualizacao';
 import type { RotaModulo } from '../../lib/rotas';
 import { mensagemErro, tempoDesde } from '../../lib/restaurante';
 import type { MesaSimplesDTO } from '../../lib/restaurante';
-import { Aviso, Botao, Campo, Carregando, Pagina, Selo } from '../../ui';
+import { Abas, Aviso, Botao, Campo, Carregando, Pagina, Selo } from '../../ui';
 import { Indicador } from '../pedidos/comum';
+import { FilaDeEspera } from './Fila';
+import { Reservas } from './Reservas';
 
 type Situacao = 'LIVRE' | 'LIMPEZA' | 'OCUPADA';
 
@@ -18,7 +20,7 @@ const GRUPOS: { situacao: Situacao; titulo: string; vazio: string }[] = [
 
 // Mesas para a recepção acomodar os clientes: livres, em limpeza e ocupadas.
 // A recepção marca a mesa livre como ocupada quando leva o cliente até ela.
-export function Recepcao() {
+function MesasDaRecepcao() {
   const mesas = useDados<MesaSimplesDTO[]>('/recepcao/mesas');
   const [pessoas, setPessoas] = useState('');
   const [aviso, setAviso] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export function Recepcao() {
   const livres = lista.filter((m) => m.situacao === 'LIVRE');
 
   return (
-    <Pagina titulo="Mesas">
+    <>
       {mesas.dados && (
         <div className="resumo">
           <Indicador rotulo="Mesas livres" valor={String(livres.length)} cor="verde" icone="mesas" />
@@ -149,6 +151,25 @@ export function Recepcao() {
             </section>
           );
         })}
+    </>
+  );
+}
+
+const ABAS = [
+  { id: 'mesas', rotulo: 'Mesas' },
+  { id: 'fila', rotulo: 'Fila de espera' },
+  { id: 'reservas', rotulo: 'Reservas' },
+];
+
+// Recepção: mesas, fila de espera e reservas.
+export function Recepcao() {
+  const [aba, setAba] = useState('mesas');
+  return (
+    <Pagina titulo="Recepção">
+      <Abas abas={ABAS} ativa={aba} aoMudar={setAba} />
+      {aba === 'mesas' && <MesasDaRecepcao />}
+      {aba === 'fila' && <FilaDeEspera />}
+      {aba === 'reservas' && <Reservas />}
     </Pagina>
   );
 }
@@ -156,10 +177,18 @@ export function Recepcao() {
 export const rotas: RotaModulo[] = [
   {
     caminho: '/recepcao/mesas',
-    rotulo: 'Mesas',
+    rotulo: 'Recepção',
     icone: 'mesas',
     perfis: ['RECEPCAO'],
     elemento: <Recepcao />,
     ordem: 10,
+  },
+  {
+    caminho: '/gestor/recepcao',
+    rotulo: 'Fila e reservas',
+    icone: 'calendario',
+    perfis: ['GESTOR'],
+    elemento: <Recepcao />,
+    ordem: 14,
   },
 ];

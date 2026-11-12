@@ -6,6 +6,8 @@ import { permitir } from '../../lib/auth';
 import { cifrar } from '../../lib/cripto';
 import { lerConfiguracao, limparCacheConfiguracao } from '../../lib/email';
 import { inicioDoDia } from '../../lib/pedidos';
+import { centavos, reais } from '../../lib/contas';
+import { gerarPixCopiaECola } from '../../lib/pix';
 import {
   cancelarNaMaquineta,
   iniciarNaMaquineta,
@@ -20,6 +22,7 @@ import {
   carregarConta,
   carregarPagamento,
   encerrarSemPagar,
+  fecharSeQuitada,
   FORMAS_PAGAMENTO,
   paraPagamentoDTO,
 } from '../../lib/pagamentos';
@@ -84,7 +87,18 @@ router.get(
         });
     res.json({
       vinculo: configuracao.vinculoMaquineta,
-      ...(gestor ? { mercadoPagoTokenDefinido: Boolean(configuracao.mercadoPagoTokenCifrado) } : {}),
+      taxaServicoPercentual: Number(configuracao.taxaServicoPercentual),
+      // Com a chave Pix cadastrada, a cobrança por Pix sem maquineta mostra o QR code.
+      pixAtivo: Boolean(configuracao.pixChave),
+      notaFiscalAtiva: configuracao.fiscalProvedor !== 'NENHUM',
+      ...(gestor
+        ? {
+            mercadoPagoTokenDefinido: Boolean(configuracao.mercadoPagoTokenCifrado),
+            pixChave: configuracao.pixChave,
+            pixNome: configuracao.pixNome,
+            pixCidade: configuracao.pixCidade,
+          }
+        : {}),
       maquinetas,
     });
   })
@@ -94,6 +108,11 @@ const configuracaoSchema = z.object({
   vinculo: z.enum(['POR_GARCOM', 'COMPARTILHADA']).optional(),
   // Ausente: mantém o token gravado. Vazio: apaga. Outro texto: grava cifrado.
   mercadoPagoToken: z.string().trim().max(500, 'Token muito longo').optional(),
+  // Taxa de serviço das contas novas. 0 desliga.
+  taxaServicoPercentual: z.number().min(0, 'Percentual inválido').max(30, 'Percentual alto demais').optional(),
+  pixChave: z.string().trim().max(77, 'Chave Pix muito longa').nullable().optional(),
+  pixNome: z.string().trim().max(60, 'Nome muito longo').nullable().optional(),
+  pixCidade: z.string().trim().max(40, 'Cidade muito longa').nullable().optional(),
 });
 
 router.put(
@@ -102,6 +121,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const dados = validar(configuracaoSchema, req.body);
     await lerConfiguracao();
+    const vazioViraNulo = (valor: string | null | undefined) => (valor === undefined ? undefined : valor || null);
     const configuracao = await prisma.configuracaoPlataforma.update({
       where: { id: 1 },
       data: {
@@ -112,12 +132,21 @@ router.put(
             : dados.mercadoPagoToken === ''
               ? null
               : cifrar(dados.mercadoPagoToken),
+        taxaServicoPercentual:
+          dados.taxaServicoPercentual === undefined ? undefined : dados.taxaServicoPercentual.toFixed(2),
+        pixChave: vazioViraNulo(dados.pixChave),
+        pixNome: vazioViraNulo(dados.pixNome),
+        pixCidade: vazioViraNulo(dados.pixCidade),
       },
     });
     limparCacheConfiguracao();
     res.json({
       vinculo: configuracao.vinculoMaquineta,
       mercadoPagoTokenDefinido: Boolean(configuracao.mercadoPagoTokenCifrado),
+      taxaServicoPercentual: Number(configuracao.taxaServicoPercentual),
+      pixChave: configuracao.pixChave,
+      pixNome: configuracao.pixNome,
+      pixCidade: configuracao.pixCidade,
     });
   })
 );
@@ -198,16 +227,66 @@ router.delete(
   })
 );
 
+// ---------- Conta: taxa de serviço e CPF na nota ----------
+
+const contaSchema = z.object({
+  taxaServico: z.boolean().optional(),
+  cpfCnpjCliente: z
+    .string()
+    .trim()
+    .max(18, 'CPF ou CNPJ inválido')
+    .nullable()
+    .optional(),
+});
+
+// O garçom tira (ou recoloca) a taxa de serviço e anota o CPF ou CNPJ do cliente para a nota.
+router.put(
+  '/mesas/:id/conta',
+  equipeDoSalao,
+  asyncHandler(async (req, res) => {
+    const mesaId = idParam(req);
+    const dados = validar(contaSchema, req.body);
+    const resumo = await carregarConta(mesaId);
+    if (!resumo.conta) {
+      throw new HttpError(400, 'Esta mesa não tem conta aberta.');
+    }
+    if (resumo.pagamentoPendente) {
+      throw new HttpError(409, 'Há uma cobrança em andamento. Conclua ou cancele antes de mudar a conta.');
+    }
+    let documento: string | null | undefined;
+    if (dados.cpfCnpjCliente !== undefined) {
+      const digitos = (dados.cpfCnpjCliente ?? '').replace(/\D/g, '');
+      if (digitos !== '' && digitos.length !== 11 && digitos.length !== 14) {
+        throw new HttpError(400, 'Informe um CPF (11 dígitos) ou um CNPJ (14 dígitos).');
+      }
+      documento = digitos === '' ? null : digitos;
+    }
+    await prisma.conta.update({
+      where: { id: resumo.conta.id },
+      data: { taxaServico: dados.taxaServico, cpfCnpjCliente: documento },
+    });
+    // Tirar a taxa pode quitar a conta que já estava quase paga.
+    await fecharSeQuitada(resumo.conta.id);
+    res.json(await carregarConta(mesaId));
+  })
+);
+
 // ---------- Cobrança da conta ----------
+
+const dinheiro = z.number().min(0, 'Valor inválido').max(999999, 'Valor inválido');
 
 const cobrarSchema = z.object({
   formaPagamento: z.enum(FORMAS_PAGAMENTO),
   maquinetaId: z.number().int().positive().nullable().optional(),
+  // Parte da conta a cobrar agora. Ausente: tudo o que falta.
+  valor: dinheiro.optional(),
+  // Gorjeta além da conta.
+  gorjeta: dinheiro.optional(),
 });
 
-// Cobra a conta aberta da mesa.
-// Dinheiro, ou sem maquineta: recebe e fecha na hora.
-// Maquineta manual: fica pendente até o garçom confirmar. Automática: o sistema acompanha a maquineta.
+// Cobra a conta da mesa, inteira ou uma parte (para dividir entre pessoas ou formas de pagamento).
+// Dinheiro, ou sem maquineta: recebe na hora. Pix com a chave do restaurante: mostra o QR code e espera
+// o garçom confirmar. Maquineta manual: espera o garçom confirmar. Automática: acompanha a maquineta.
 router.post(
   '/mesas/:id/cobrar',
   equipeDoSalao,
@@ -218,9 +297,17 @@ router.post(
     if (conta.pagamentoPendente) {
       throw new HttpError(409, 'Esta mesa já tem uma cobrança em andamento. Conclua ou cancele essa cobrança.');
     }
-    if (conta.pedidos.length === 0) {
+    if (!conta.conta || conta.pedidos.length === 0 || conta.restante <= 0) {
       throw new HttpError(400, 'Esta mesa não tem conta aberta.');
     }
+    const valor = dados.valor ?? conta.restante;
+    if (centavos(valor) <= 0) {
+      throw new HttpError(400, 'Informe o valor a cobrar.');
+    }
+    if (centavos(valor) > centavos(conta.restante)) {
+      throw new HttpError(400, 'O valor é maior do que o que falta pagar. Para dar a mais, use a gorjeta.');
+    }
+    const gorjeta = dados.gorjeta ?? 0;
 
     let maquineta = null;
     if (dados.maquinetaId && dados.formaPagamento !== 'Dinheiro') {
@@ -236,25 +323,38 @@ router.post(
     const garcomId =
       configuracao.vinculoMaquineta === 'POR_GARCOM' && maquineta?.garcomId ? maquineta.garcomId : req.usuario.id;
 
-    const pagamento = await prisma.$transaction(async (tx) => {
-      const criado = await tx.pagamento.create({
-        data: {
-          mesaId,
-          valor: conta.total.toFixed(2),
-          formaPagamento: dados.formaPagamento,
-          maquinetaId: maquineta?.id ?? null,
-          garcomId,
-          iniciadoPorId: req.usuario.id,
-        },
-      });
-      await tx.pedido.updateMany({
-        where: { id: { in: conta.pedidos.map((p) => p.id) }, pagoEm: null },
-        data: { pagamentoId: criado.id },
-      });
-      return criado;
+    // Quanto deste pagamento é taxa de serviço (proporcional à parte paga).
+    const valorServico =
+      conta.total > 0 ? reais(Math.round((centavos(valor) * centavos(conta.taxa)) / centavos(conta.total))) : 0;
+
+    const pagamento = await prisma.pagamento.create({
+      data: {
+        mesaId,
+        contaId: conta.conta.id,
+        valor: valor.toFixed(2),
+        gorjeta: gorjeta.toFixed(2),
+        valorServico: valorServico.toFixed(2),
+        formaPagamento: dados.formaPagamento,
+        maquinetaId: maquineta?.id ?? null,
+        garcomId,
+        iniciadoPorId: req.usuario.id,
+      },
     });
 
-    if (!maquineta) {
+    const comPix = !maquineta && dados.formaPagamento === 'Pix' && Boolean(configuracao.pixChave);
+    if (comPix) {
+      const pix = gerarPixCopiaECola({
+        chave: configuracao.pixChave ?? '',
+        nome: configuracao.pixNome || configuracao.nome,
+        cidade: configuracao.pixCidade || 'BRASIL',
+        valor: valor + gorjeta,
+        identificador: `PAG${pagamento.id}`,
+      });
+      await prisma.pagamento.update({
+        where: { id: pagamento.id },
+        data: { pix, mensagem: 'Mostre o QR code ao cliente e confirme quando o Pix cair.' },
+      });
+    } else if (!maquineta) {
       await aprovarPagamento(pagamento.id);
     } else if (maquineta.integracao === 'AUTOMATICA') {
       try {
@@ -265,7 +365,7 @@ router.post(
           data: { referenciaExterna: referencia, mensagem: 'Enviando a cobrança para a maquineta.' },
         });
       } catch (erro) {
-        // A maquineta não recebeu a cobrança: desfaz para a conta voltar a ficar aberta.
+        // A maquineta não recebeu a cobrança: desfaz para a parte voltar a ficar em aberto.
         await encerrarSemPagar(pagamento.id, 'CANCELADO', 'A cobrança não chegou à maquineta.');
         throw erro;
       }
@@ -295,7 +395,7 @@ const confirmarSchema = z.object({
   codigoAutorizacao: z.string().trim().max(40, 'Código muito longo').nullable().optional(),
 });
 
-// Maquineta manual: o garçom confirma que o pagamento passou.
+// Maquineta manual ou Pix com a chave do restaurante: o garçom confirma que o pagamento passou.
 router.post(
   '/pagamentos/:id/confirmar',
   equipeDoSalao,
@@ -369,7 +469,14 @@ router.get(
       }),
       prisma.pagamento.findMany({
         where: { status: 'APROVADO', concluidoEm: { gte: desde } },
-        select: { garcomId: true, valor: true, formaPagamento: true, maquinetaId: true },
+        select: {
+          garcomId: true,
+          valor: true,
+          gorjeta: true,
+          valorServico: true,
+          formaPagamento: true,
+          maquinetaId: true,
+        },
       }),
     ]);
 
@@ -387,6 +494,9 @@ router.get(
         vendasNosPedidos: Number(doPedido?._sum.total ?? 0),
         contasRecebidas: recebidos.length,
         valorRecebido: Math.round(valorRecebido * 100) / 100,
+        // Taxa de serviço das contas que recebeu e gorjetas dadas além da conta.
+        taxaServico: Math.round(recebidos.reduce((s, p) => s + Number(p.valorServico), 0) * 100) / 100,
+        gorjetas: Math.round(recebidos.reduce((s, p) => s + Number(p.gorjeta), 0) * 100) / 100,
         recebidoNaMaquineta:
           Math.round(recebidos.filter((p) => p.maquinetaId !== null).reduce((s, p) => s + Number(p.valor), 0) * 100) / 100,
         valorMedioPorConta: recebidos.length > 0 ? Math.round((valorRecebido / recebidos.length) * 100) / 100 : 0,
@@ -405,6 +515,8 @@ router.get(
       totais: {
         contasRecebidas: pagamentos.length,
         valorRecebido: Math.round(pagamentos.reduce((soma, p) => soma + Number(p.valor), 0) * 100) / 100,
+        taxaServico: Math.round(pagamentos.reduce((soma, p) => soma + Number(p.valorServico), 0) * 100) / 100,
+        gorjetas: Math.round(pagamentos.reduce((soma, p) => soma + Number(p.gorjeta), 0) * 100) / 100,
         pedidosAtendidos: visiveis.reduce((soma, l) => soma + l.pedidosAtendidos, 0),
       },
       garcons: visiveis,

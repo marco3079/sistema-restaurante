@@ -26,6 +26,11 @@ function paraProdutoDTO(p: ProdutoComCategoria) {
     imagem: p.imagem,
     disponivel: p.disponivel,
     recomendado: p.recomendado,
+    controlaEstoque: p.controlaEstoque,
+    estoque: p.estoque,
+    estoqueMinimo: p.estoqueMinimo,
+    ncm: p.ncm,
+    cfop: p.cfop,
     ...fichaDoProduto(p),
   };
 }
@@ -124,6 +129,12 @@ const produtoCampos = {
   imagem: z.string().nullable().optional(),
   disponivel: z.boolean().optional(),
   recomendado: z.boolean().optional(),
+  // Estoque: o saldo muda só pelos movimentos (tela de Estoque); aqui se liga o controle e o mínimo.
+  controlaEstoque: z.boolean().optional(),
+  estoqueMinimo: z.number().int().min(0, 'Mínimo inválido').max(100000, 'Mínimo inválido').optional(),
+  // Dados fiscais do item. Vazio usa o padrão das configurações fiscais.
+  ncm: z.string().trim().regex(/^(\d{8})?$/, 'O NCM deve ter 8 dígitos').nullable().optional(),
+  cfop: z.string().trim().regex(/^(\d{4})?$/, 'O CFOP deve ter 4 dígitos').nullable().optional(),
   ...fichaCampos,
 };
 const produtoCriarSchema = z.object(produtoCampos);
@@ -169,6 +180,12 @@ router.post(
         imagem: validarImagem(dados.imagem, { aceitaEndereco: true }),
         disponivel: dados.disponivel ?? true,
         recomendado: dados.recomendado ?? false,
+        controlaEstoque: dados.controlaEstoque ?? false,
+        estoqueMinimo: dados.estoqueMinimo ?? 0,
+        ncm: dados.ncm || null,
+        cfop: dados.cfop || null,
+        // Com controle de estoque, o produto nasce zerado e esgotado até a primeira entrada.
+        ...(dados.controlaEstoque ? { disponivel: false } : {}),
         ...dadosDaFicha(dados),
         detalhes: dados.detalhes ?? '',
         ingredientes: dados.ingredientes ?? '',
@@ -203,6 +220,10 @@ router.put(
           dados.imagem === undefined ? undefined : validarImagem(dados.imagem, { aceitaEndereco: true }),
         disponivel: dados.disponivel,
         recomendado: dados.recomendado,
+        controlaEstoque: dados.controlaEstoque,
+        estoqueMinimo: dados.estoqueMinimo,
+        ncm: dados.ncm === undefined ? undefined : dados.ncm || null,
+        cfop: dados.cfop === undefined ? undefined : dados.cfop || null,
         ...dadosDaFicha(dados),
       },
       include: incluirCategoria,
@@ -218,9 +239,15 @@ router.put(
   asyncHandler(async (req, res) => {
     const id = idParam(req);
     const { disponivel } = validar(z.object({ disponivel: z.boolean() }), req.body);
-    const existente = await prisma.produto.findFirst({ where: { id, ativo: true }, select: { id: true } });
+    const existente = await prisma.produto.findFirst({
+      where: { id, ativo: true },
+      select: { id: true, controlaEstoque: true, estoque: true },
+    });
     if (!existente) {
       throw new HttpError(404, 'Produto não encontrado');
+    }
+    if (disponivel && existente.controlaEstoque && existente.estoque === 0) {
+      throw new HttpError(400, 'Este item está com o estoque zerado. Lance uma entrada no estoque para ele voltar.');
     }
     const produto = await prisma.produto.update({
       where: { id },

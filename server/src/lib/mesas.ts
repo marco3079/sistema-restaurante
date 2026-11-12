@@ -20,6 +20,11 @@ export async function liberarParaLimpeza(mesaId: number, aposPagamento = false):
     where: { mesaId, pagoEm: null, status: { not: 'CANCELADO' } },
   });
   if (abertos > 0) return false;
+  // Conta que ficou sem nenhum pedido (todos cancelados) é encerrada junto.
+  await prisma.conta.updateMany({
+    where: { mesaId, status: 'ABERTA' },
+    data: { status: 'FECHADA', fechadaEm: new Date() },
+  });
   await prisma.mesa.updateMany({
     where: { id: mesaId, estado: aposPagamento ? { not: 'LIMPEZA' } : 'OCUPADA' },
     data: { estado: 'LIMPEZA', estadoDesde: new Date(), chamandoDesde: null },

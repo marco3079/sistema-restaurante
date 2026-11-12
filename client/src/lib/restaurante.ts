@@ -72,6 +72,12 @@ export interface ProdutoDTO extends FichaProduto {
   imagem: string | null;
   disponivel: boolean;
   recomendado: boolean;
+  // Estoque (só com o controle ligado) e dados fiscais do item.
+  controlaEstoque: boolean;
+  estoque: number;
+  estoqueMinimo: number;
+  ncm: string | null;
+  cfop: string | null;
 }
 
 export interface MesaDTO {
@@ -142,10 +148,24 @@ export interface PedidoDTO {
   itens: ItemPedidoDTO[];
 }
 
+// Conta aberta da mesa. Pode ser paga em partes: `restante` é o que ainda falta.
 export interface ContaDTO {
   mesa: { id: number; numero: number; nome: string | null };
+  conta: {
+    id: number;
+    taxaServico: boolean;
+    taxaPercentual: number;
+    cpfCnpjCliente: string | null;
+    abertaEm: string;
+  } | null;
   pedidos: PedidoDTO[];
+  subtotal: number;
+  taxa: number;
   total: number;
+  pago: number;
+  restante: number;
+  gorjetas: number;
+  pagamentos: PagamentoDTO[];
   pagamentoPendente: PagamentoDTO | null;
 }
 
@@ -245,13 +265,30 @@ export interface MaquinetaDTO {
 export interface MaquinetasDTO {
   vinculo: VinculoMaquineta;
   mercadoPagoTokenDefinido?: boolean;
+  // Taxa de serviço das contas novas (0 = sem taxa).
+  taxaServicoPercentual: number;
+  // Com a chave Pix cadastrada, o Pix sem maquineta mostra o QR code.
+  pixAtivo: boolean;
+  // Há um serviço de nota fiscal conectado.
+  notaFiscalAtiva: boolean;
+  pixChave?: string | null;
+  pixNome?: string | null;
+  pixCidade?: string | null;
   maquinetas: MaquinetaDTO[];
 }
 
 export interface PagamentoDTO {
   id: number;
+  contaId: number | null;
   mesa: { id: number; numero: number; nome: string | null };
+  // Parte da conta que este pagamento quita.
   valor: number;
+  // Gorjeta dada além da conta.
+  gorjeta: number;
+  // Quanto do valor é taxa de serviço.
+  valorServico: number;
+  // Pix copia e cola (só enquanto a cobrança por Pix está pendente).
+  pix: string | null;
   formaPagamento: string;
   status: 'PENDENTE' | 'APROVADO' | 'RECUSADO' | 'CANCELADO';
   maquineta: { id: number; nome: string; operadora: OperadoraMaquineta; integracao: IntegracaoMaquineta } | null;
@@ -265,13 +302,21 @@ export interface PagamentoDTO {
 export interface DesempenhoDTO {
   dias: number;
   desde: string;
-  totais: { contasRecebidas: number; valorRecebido: number; pedidosAtendidos: number };
+  totais: {
+    contasRecebidas: number;
+    valorRecebido: number;
+    taxaServico: number;
+    gorjetas: number;
+    pedidosAtendidos: number;
+  };
   garcons: {
     usuario: { id: number; nome: string; perfil: string; ativo: boolean; foto: string | null };
     pedidosAtendidos: number;
     vendasNosPedidos: number;
     contasRecebidas: number;
     valorRecebido: number;
+    taxaServico: number;
+    gorjetas: number;
     recebidoNaMaquineta: number;
     valorMedioPorConta: number;
     porForma: Record<string, number>;
@@ -295,4 +340,119 @@ export interface MesaSimplesDTO {
   area: { nome: string; cor: string } | null;
   situacao?: 'LIVRE' | 'OCUPADA' | 'LIMPEZA';
   desde: string;
+}
+
+// ---------- Recepção: fila de espera e reservas ----------
+
+export interface EsperaDTO {
+  id: number;
+  nome: string;
+  pessoas: number;
+  telefone: string | null;
+  observacao: string | null;
+  status: 'AGUARDANDO' | 'CHAMADO' | 'ACOMODADO' | 'DESISTIU';
+  mesaId: number | null;
+  criadoEm: string;
+  chamadoEm: string | null;
+}
+
+export interface FilaDTO {
+  fila: EsperaDTO[];
+  acomodadosHoje: number;
+  esperaMediaMin: number | null;
+}
+
+export interface ReservaDTO {
+  id: number;
+  nome: string;
+  pessoas: number;
+  telefone: string | null;
+  observacao: string | null;
+  dataHora: string;
+  mesaId: number | null;
+  mesa: { id: number; numero: number; nome: string | null; lugares: number } | null;
+  status: 'ATIVA' | 'CHEGOU' | 'CANCELADA' | 'NAO_COMPARECEU';
+}
+
+// ---------- Estoque ----------
+
+export interface EstoqueItemDTO {
+  id: number;
+  nome: string;
+  imagem: string | null;
+  estoque: number;
+  estoqueMinimo: number;
+  disponivel: boolean;
+  categoria: { nome: string };
+  situacao: 'OK' | 'BAIXO' | 'ZERADO';
+}
+
+export interface MovimentoDTO {
+  id: number;
+  tipo: 'ENTRADA' | 'SAIDA' | 'AJUSTE' | 'VENDA' | 'DEVOLUCAO';
+  quantidade: number;
+  saldo: number;
+  motivo: string | null;
+  usuarioNome: string | null;
+  criadoEm: string;
+}
+
+// ---------- Nota fiscal ----------
+
+export type ProvedorFiscal = 'NENHUM' | 'WEBHOOK' | 'FOCUS_NFE' | 'WEBMANIA';
+
+export interface FiscalConfigDTO {
+  provedor: ProvedorFiscal;
+  ambiente: 'HOMOLOGACAO' | 'PRODUCAO';
+  cnpj: string | null;
+  webhookUrl: string | null;
+  emissaoAutomatica: boolean;
+  ncmPadrao: string;
+  cfopPadrao: string;
+  csosnPadrao: string;
+  classeImposto: string | null;
+  credenciaisDefinidas: string[];
+}
+
+export interface NotaDTO {
+  id: number;
+  status: 'PROCESSANDO' | 'AUTORIZADA' | 'REJEITADA' | 'CANCELADA' | 'ERRO';
+  provedor: ProvedorFiscal;
+  ambiente: 'HOMOLOGACAO' | 'PRODUCAO';
+  numero: string | null;
+  serie: string | null;
+  chave: string | null;
+  urlDanfe: string | null;
+  urlXml: string | null;
+  mensagem: string | null;
+  atualizadaEm: string;
+}
+
+export interface ContaFechadaDTO {
+  id: number;
+  mesa: { numero: number; nome: string | null };
+  fechadaEm: string | null;
+  cpfCnpjCliente: string | null;
+  produtos: number;
+  servico: number;
+  gorjetas: number;
+  total: number;
+  formas: Record<string, number>;
+  nota: NotaDTO | null;
+}
+
+export const STATUS_NOTA: Record<NotaDTO['status'], { rotulo: string; cor: 'azul' | 'amarelo' | 'verde' | 'cinza' | 'vermelho' }> = {
+  PROCESSANDO: { rotulo: 'Em processamento', cor: 'amarelo' },
+  AUTORIZADA: { rotulo: 'Autorizada', cor: 'verde' },
+  REJEITADA: { rotulo: 'Rejeitada', cor: 'vermelho' },
+  CANCELADA: { rotulo: 'Cancelada', cor: 'cinza' },
+  ERRO: { rotulo: 'Erro', cor: 'vermelho' },
+};
+
+// CPF ou CNPJ só com dígitos -> com pontuação.
+export function formatarDocumento(digitos: string | null): string {
+  if (!digitos) return '';
+  if (digitos.length === 11) return digitos.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+  if (digitos.length === 14) return digitos.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+  return digitos;
 }

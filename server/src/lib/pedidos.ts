@@ -4,6 +4,8 @@ import type { OrigemPedido, Prisma, StatusPedido } from '@prisma/client';
 import { prisma } from './prisma';
 import { HttpError } from './erros';
 import { ocuparMesa } from './mesas';
+import { garantirConta } from './contas';
+import { baixarPorPedido } from './estoque';
 
 // Regras comuns aos pedidos feitos pela equipe e pelo cardápio da mesa.
 
@@ -100,17 +102,24 @@ export async function criarPedido(entrada: {
     };
   });
 
-  const pedido = await prisma.pedido.create({
-    data: {
-      mesaId: entrada.mesaId,
-      origem: entrada.origem,
-      nomeCliente: textoOuNulo(entrada.nomeCliente),
-      observacao: textoOuNulo(entrada.observacao),
-      garcomId: entrada.garcomId ?? null,
-      total: (totalCentavos / 100).toFixed(2),
-      itens: { create: linhas },
-    },
-    include: incluirPedido,
+  const conta = await garantirConta(entrada.mesaId);
+  // O pedido e a baixa do estoque entram juntos: se faltar estoque, o pedido não é criado.
+  const pedido = await prisma.$transaction(async (tx) => {
+    const criado = await tx.pedido.create({
+      data: {
+        mesaId: entrada.mesaId,
+        contaId: conta.id,
+        origem: entrada.origem,
+        nomeCliente: textoOuNulo(entrada.nomeCliente),
+        observacao: textoOuNulo(entrada.observacao),
+        garcomId: entrada.garcomId ?? null,
+        total: (totalCentavos / 100).toFixed(2),
+        itens: { create: linhas },
+      },
+      include: incluirPedido,
+    });
+    await baixarPorPedido(tx, entrada.itens, criado.id);
+    return criado;
   });
   // Mesa com pedido é mesa ocupada.
   await ocuparMesa(entrada.mesaId);

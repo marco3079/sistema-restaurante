@@ -5,6 +5,7 @@ import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
 import { novoCodigoDeMesa } from '../../lib/pedidos';
 import { carregarConta } from '../../lib/pagamentos';
+import { valoresDaConta } from '../../lib/contas';
 import { liberarParaLimpeza, marcarMesaLimpa, ocuparMesa } from '../../lib/mesas';
 
 // Mesas do salão: cadastro (gestor), situação, garçons responsáveis, chamado do cliente e conta.
@@ -55,7 +56,16 @@ function nomeOuNulo(valor: string | null | undefined): string | null | undefined
 // Responsáveis: os garçons da área da mesa; sem área (ou área sem garçom), o garçom do pedido
 // em aberto mais recente da mesa. Sem nenhum dos dois, a mesa não tem responsável.
 async function situacaoDasMesas() {
-  const [mesas, abertos] = await Promise.all([
+  const [contas, mesas, abertos] = await Promise.all([
+    prisma.conta.findMany({
+      where: { status: 'ABERTA' },
+      select: {
+        mesaId: true,
+        taxaServico: true,
+        taxaPercentual: true,
+        pagamentos: { where: { status: 'APROVADO' }, select: { valor: true } },
+      },
+    }),
     prisma.mesa.findMany({
       orderBy: { numero: 'asc' },
       include: {
@@ -103,6 +113,13 @@ async function situacaoDasMesas() {
   }
   return mesas.map((m) => {
     const conta = porMesa.get(m.id);
+    // O que falta pagar: pedidos mais a taxa de serviço, menos o que já foi pago em partes.
+    const contaAbertaDaMesa = contas.find((c) => c.mesaId === m.id) ?? null;
+    const valores = valoresDaConta(
+      contaAbertaDaMesa,
+      conta?.total ?? 0,
+      contaAbertaDaMesa?.pagamentos.reduce((soma, p) => soma + Number(p.valor), 0) ?? 0
+    );
     const daArea = m.area?.garcons ?? [];
     const responsaveis = daArea.length > 0 ? daArea : conta?.garcom ? [conta.garcom] : [];
     return {
@@ -119,7 +136,7 @@ async function situacaoDasMesas() {
       // Mesa com conta aberta está sempre ocupada; sem conta, vale o estado gravado.
       situacao: conta ? ('OCUPADA' as const) : m.estado,
       estadoDesde: m.estadoDesde.toISOString(),
-      totalAberto: conta ? Math.round(conta.total * 100) / 100 : 0,
+      totalAberto: conta ? valores.restante : 0,
       pedidosAbertos: conta?.pedidos ?? 0,
       pedidosPendentes: conta?.pendentes ?? 0,
       abertaDesde: conta?.desde ? conta.desde.toISOString() : null,

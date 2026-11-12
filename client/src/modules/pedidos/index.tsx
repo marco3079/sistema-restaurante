@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import { useAtualizacao } from '../../lib/useAtualizacao';
 import type { RotaModulo } from '../../lib/rotas';
 import { STATUS_PEDIDO, horaCurta, nomeDaMesa } from '../../lib/restaurante';
 import type { MesaDTO, PedidoDTO, StatusPedido } from '../../lib/restaurante';
-import { Aviso, Botao, Carregando, Pagina, Selecao, Tabela, formatarData, formatarMoeda } from '../../ui';
+import { Aviso, Botao, Caixa, Carregando, Pagina, Selecao, Tabela, formatarData, formatarMoeda } from '../../ui';
+import { imprimirComanda } from '../../lib/imprimir';
 import { CartaoPedido, Indicador, NovoPedido, SeloStatus } from './comum';
 
 type Visao = 'andamento' | 'hoje' | 'todos';
@@ -26,6 +27,8 @@ const STATUS_OPCOES = (Object.keys(STATUS_PEDIDO) as StatusPedido[]).map((s) => 
 function resumoDosItens(p: PedidoDTO): string {
   return p.itens.map((i) => `${i.quantidade}x ${i.nomeProduto}`).join(', ');
 }
+
+const CHAVE_AUTO_IMPRIMIR = 'pedidos-imprimir-sozinho';
 
 export function Pedidos() {
   const { usuario } = useAuth();
@@ -51,6 +54,37 @@ export function Pedidos() {
     const id = window.setInterval(() => setAgora(new Date()), 30000);
     return () => window.clearInterval(id);
   }, []);
+
+  // Impressão automática: cada pedido novo que chega sai na impressora deste aparelho.
+  const [autoImprimir, setAutoImprimir] = useState(() => {
+    try {
+      return window.localStorage.getItem(CHAVE_AUTO_IMPRIMIR) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const jaVistos = useRef<Set<number> | null>(null);
+  useEffect(() => {
+    if (!pedidos.dados || visao !== 'andamento') return;
+    const primeiraVez = jaVistos.current === null;
+    const vistos = jaVistos.current ?? new Set<number>();
+    jaVistos.current = vistos;
+    for (const p of pedidos.dados) {
+      if (vistos.has(p.id)) continue;
+      vistos.add(p.id);
+      // Os pedidos que já estavam na fila ao abrir a tela não são impressos de novo.
+      if (!primeiraVez && autoImprimir && p.status === 'NOVO') imprimirComanda(p);
+    }
+  }, [pedidos.dados, visao, autoImprimir]);
+
+  function mudarAutoImprimir(ligado: boolean) {
+    setAutoImprimir(ligado);
+    try {
+      window.localStorage.setItem(CHAVE_AUTO_IMPRIMIR, ligado ? '1' : '0');
+    } catch {
+      // Sem armazenamento local, a escolha vale só enquanto a tela estiver aberta.
+    }
+  }
 
   const lista = pedidos.dados ?? [];
   const contar = (s: StatusPedido) => lista.filter((p) => p.status === s).length;
@@ -102,6 +136,9 @@ export function Pedidos() {
               vazio="Todas"
               opcoes={(mesas.dados ?? []).map((m) => ({ valor: String(m.id), rotulo: nomeDaMesa(m) }))}
             />
+          )}
+          {visao === 'andamento' && (
+            <Caixa rotulo="Imprimir os pedidos novos sozinho" marcado={autoImprimir} aoMudar={mudarAutoImprimir} />
           )}
           {visao !== 'andamento' && (
             <Selecao rotulo="Situação" valor={status} aoMudar={setStatus} vazio="Todas" opcoes={STATUS_OPCOES} />

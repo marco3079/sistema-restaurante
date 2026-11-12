@@ -25,6 +25,7 @@
 - [Cardápio na mesa (QR code)](#cardápio-na-mesa-qr-code)
 - [Dados de demonstração](#dados-de-demonstração)
 - [Maquinetas](#maquinetas)
+- [Pix, impressão e nota fiscal](#pix-impressão-e-nota-fiscal)
 - [Configuração](#configuração)
 - [Arquitetura](#arquitetura)
 - [Desenvolvimento](#desenvolvimento)
@@ -73,17 +74,35 @@ Um único app, com uma entrada para cada pessoa:
 **Conta e maquineta**
 
 - O garçom recebe a conta em dinheiro, Pix, débito ou crédito.
+- Taxa de serviço (10% por padrão, o gestor define): entra sozinha em toda conta e o garçom pode tirar quando o cliente pedir.
+- Gorjeta além da conta, lançada na hora de receber.
+- Conta dividida: o garçom divide o que falta por 2, 3, 4 ou quantas pessoas forem, ou digita o valor de cada um, e recebe cada parte em uma forma de pagamento. A conta fecha quando o total é pago.
+- Pix com QR code: com a chave Pix do restaurante cadastrada, a cobrança em Pix mostra o QR code e o "copia e cola" com o valor. Quem recebe confere o Pix no banco e confirma na tela.
+- Impressão da conta, do comprovante e da comanda do pedido, pela impressora do aparelho.
 - Maquinetas cadastradas pelo gestor, que escolhe a operadora de cada uma (Mercado Pago Point, Stone, PagBank, Cielo ou outra) e como elas se ligam aos garçons: cada garçom com a sua, ou compartilhadas.
 - Integração manual (qualquer operadora): o garçom passa o valor na maquineta e confirma no sistema.
 - Integração automática: o sistema manda o valor para a maquineta e fecha a conta quando ela aprova. Disponível para o Mercado Pago Point e para uma maquineta simulada, de teste. Veja [Maquinetas](#maquinetas).
-- Desempenho dos garçons: pedidos atendidos, contas recebidas, valor recebido (total e na maquineta) e média por conta, por período.
+- Desempenho dos garçons: pedidos atendidos, contas recebidas, valor recebido (total e na maquineta), taxa de serviço, gorjetas e média por conta, por período. A taxa e a gorjeta contam para quem recebeu a conta.
+
+**Recepção**
+
+- Mesas livres, em limpeza e ocupadas, com filtro por número de pessoas.
+- Fila de espera: nome, pessoas, telefone e observação; chamar, acomodar em uma mesa livre (que fica ocupada) ou marcar desistência. Mostra a espera média do dia.
+- Reservas por dia, com mesa opcional. O sistema recusa duas reservas da mesma mesa em horários próximos. Quando o cliente chega, a recepção escolhe a mesa.
+
+**Estoque e nota fiscal**
+
+- Controle de estoque por produto, ligado no cadastro: cada pedido baixa o saldo, o item sai do cardápio ao zerar e o saldo volta se o pedido for cancelado.
+- Entrada, saída e acerto de contagem, com o histórico de cada item. Aviso de estoque baixo pelo mínimo definido. A cozinha consulta o saldo.
+- Nota fiscal (NFC-e) emitida por um serviço que o gestor conecta: Focus NFe, WebmaniaBR ou qualquer outro, por webhook. Emissão pelo botão ou automática ao fechar a conta, com CPF ou CNPJ do cliente.
+- Planilha das contas pagas (produtos, taxa, gorjetas, formas de pagamento e nota) para o contador.
 
 **Cliente na mesa**
 
 - Cardápio por categoria, com foto e preço, e área de recomendados no topo, que rola com o dedo, com o mouse ou pelas setas.
 - Perfil do prato ao tocar no item, com ingredientes e tabela nutricional.
 - Sacola, nome e observação do pedido.
-- Acompanhamento da situação de cada pedido e do total da mesa.
+- Acompanhamento da situação de cada pedido e do total da mesa, com a taxa de serviço e o que já foi pago.
 - Botão de chamar o garçom sempre à mão, no topo do cardápio. Ele mostra "Garçom avisado" até alguém atender.
 
 **Gestão**
@@ -136,9 +155,27 @@ Os dados dos prints são fictícios (dados de demonstração). As fotos dos prat
 
 <img src="docs/imagens/cobranca.png" alt="Conta da mesa aguardando a maquineta" width="900">
 
-**Maquinetas e desempenho dos garçons**
+**Conta dividida, taxa de serviço e Pix com QR code**
 
-<img src="docs/imagens/maquinetas.png" alt="Cadastro de maquinetas e modo de vínculo com os garçons" width="900">
+<img src="docs/imagens/conta-dividida.png" alt="Conta com taxa de serviço, pagamento parcial e divisão por pessoas" width="900">
+
+<img src="docs/imagens/conta-pix.png" alt="QR code do Pix com o valor da cobrança" width="900">
+
+**Fila de espera e reservas**
+
+<img src="docs/imagens/fila.png" alt="Fila de espera da recepção" width="900">
+
+<img src="docs/imagens/reservas.png" alt="Reservas do dia" width="900">
+
+**Estoque e notas fiscais**
+
+<img src="docs/imagens/estoque.png" alt="Estoque dos itens controlados" width="900">
+
+<img src="docs/imagens/notas.png" alt="Contas pagas e situação das notas fiscais" width="900">
+
+**Pagamentos (maquinetas, taxa de serviço e Pix) e desempenho dos garçons**
+
+<img src="docs/imagens/maquinetas.png" alt="Taxa de serviço, Pix e cadastro de maquinetas" width="900">
 
 <img src="docs/imagens/desempenho.png" alt="Desempenho dos garçons no período" width="900">
 
@@ -244,10 +281,10 @@ O sistema envia e-mails de recuperação de senha e de boas-vindas a novos usuá
 
 ## Maquinetas
 
-O gestor cadastra as maquinetas em **Maquinetas** e escolhe, para cada uma, a operadora e a integração.
+O gestor cadastra as maquinetas em **Pagamentos** e escolhe, para cada uma, a operadora e a integração.
 
 - **Manual** (Mercado Pago, Stone, PagBank, Cielo ou outra): ao receber a conta, o garçom escolhe a maquineta, digita o valor nela e confirma no sistema que o pagamento foi aprovado (com o código do comprovante, se quiser). O recebimento fica registrado na maquineta e no nome do garçom.
-- **Automática, Mercado Pago Point**: o sistema envia a cobrança para a maquineta pela API do Mercado Pago (Orders API) e fecha a conta quando ela aprova. O gestor informa o token de acesso (Access Token) da conta em **Maquinetas** e escolhe o terminal em "Buscar terminais". A maquineta precisa estar no modo PDV. Esta integração foi escrita seguindo a documentação do Mercado Pago, mas **ainda não foi testada com uma maquineta real**: teste com valores pequenos antes de usar no dia a dia.
+- **Automática, Mercado Pago Point**: o sistema envia a cobrança para a maquineta pela API do Mercado Pago (Orders API) e fecha a conta quando ela aprova. O gestor informa o token de acesso (Access Token) da conta em **Pagamentos** e escolhe o terminal em "Buscar terminais". A maquineta precisa estar no modo PDV. Esta integração foi escrita seguindo a documentação do Mercado Pago, mas **ainda não foi testada com uma maquineta real**: teste com valores pequenos antes de usar no dia a dia.
 - **Automática, simulada**: maquineta de teste que aprova sozinha alguns segundos depois. Serve para conhecer o fluxo sem aparelho. Com o identificador `RECUSAR`, ela recusa.
 - Para Stone, PagBank e Cielo a integração automática não está disponível: use a manual.
 
@@ -255,6 +292,24 @@ O gestor também escolhe como as maquinetas se ligam aos garçons:
 
 - **Cada garçom tem a sua**: cada maquineta tem um dono. O garçom só cobra na dele, e o que passa nela conta para ele no desempenho.
 - **Compartilhadas**: qualquer garçom usa qualquer maquineta, e o recebimento conta para quem cobrou.
+
+## Pix, impressão e nota fiscal
+
+**Pix.** Em **Pagamentos**, o gestor informa a chave Pix, o nome de quem recebe e a cidade. A partir daí a cobrança em Pix (sem maquineta) mostra um QR code com o valor. O código é gerado pelo próprio sistema, no padrão do Banco Central (BR Code), sem passar por banco nem intermediário. Por isso **o sistema não sabe sozinho se o Pix caiu**: quem recebe confere no aplicativo do banco e toca em "O Pix caiu".
+
+**Impressão.** A conta, o comprovante e a comanda do pedido são impressos pelo navegador, na impressora do aparelho (o navegador abre a janela de impressão). O layout é de bobina de 80 mm. Na fila de pedidos, a opção "Imprimir os pedidos novos sozinho" manda cada pedido novo para a impressão naquele aparelho. Para sair direto, sem a janela, o navegador precisa estar no modo de impressão silenciosa (no Chrome e no Edge, o modo quiosque com `--kiosk-printing`).
+
+**Estoque.** No cadastro do produto, ligue "Controlar estoque" e defina o mínimo. O saldo começa em zero: lance a entrada em **Estoque** para o item aparecer no cardápio.
+
+**Nota fiscal.** O sistema não emite a nota por conta própria: ele envia a venda para um serviço emissor, que fala com a Secretaria da Fazenda. Em **Notas fiscais > Conexão com o emissor**, o gestor escolhe o serviço:
+
+- **Focus NFe**: token da empresa.
+- **WebmaniaBR**: as quatro credenciais e a referência de uma classe de imposto.
+- **Outro serviço, por webhook**: o sistema envia cada venda em JSON (`POST`) para o endereço informado, com `Authorization: Bearer <token>` se houver token. A resposta pode trazer `status` (`AUTORIZADA`, `PROCESSANDO`, `REJEITADA` ou `ERRO`), `numero`, `serie`, `chave`, `urlDanfe`, `urlXml` e `mensagem`. Serve para ligar qualquer emissor.
+
+A empresa precisa estar cadastrada no serviço escolhido, com certificado digital, CSC e credenciamento na Secretaria da Fazenda do estado. A nota leva só os produtos; a taxa de serviço e a gorjeta ficam fora. O NCM, o CFOP e a situação tributária padrão ficam na mesma tela (peça ao contador), e cada produto pode ter NCM e CFOP próprios.
+
+As integrações com a Focus NFe e a WebmaniaBR foram escritas pela documentação pública dos serviços e **ainda não foram testadas com contas reais**; a por webhook foi testada com um receptor local. Comece em homologação e confira as primeiras notas com o contador.
 
 ## Arquitetura
 
