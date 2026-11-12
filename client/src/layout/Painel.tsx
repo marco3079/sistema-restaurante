@@ -153,6 +153,8 @@ export function Painel() {
   const saudacao = primeiroNome ? `Olá, ${primeiroNome}!` : 'Olá!';
   const prefixo = prefixoDoPerfil(usuario?.perfil);
   const atalhos = atalhosDoPerfil(usuario?.perfil);
+  // O gráfico de vendas é só do gestor; sem ele, a linha fica com duas colunas.
+  const gestor = usuario?.perfil === 'GESTOR';
 
   const pontos = dados ? dados.desempenho.slice(-periodo) : [];
   const temVenda = pontos.some((p) => p.valor !== null);
@@ -204,35 +206,37 @@ export function Painel() {
         </div>
       )}
 
-      <div className="painel-linha">
-        <section className="painel-cartao painel-desempenho">
-          <header className="painel-cartao-cabecalho">
-            <Icone nome="grafico" tamanho={20} className="painel-cartao-icone" />
-            <h2 className="painel-cartao-titulo">Vendas por Mês</h2>
-            <select
-              className="painel-seletor"
-              aria-label="Período do gráfico"
-              value={periodo}
-              disabled={!dados}
-              onChange={(e) => setPeriodo(Number(e.target.value))}
-            >
-              {PERIODOS.map((p) => (
-                <option key={p.valor} value={p.valor}>
-                  {p.rotulo}
-                </option>
+      <div className={gestor ? 'painel-linha' : 'painel-linha painel-linha-dupla'}>
+        {gestor && (
+          <section className="painel-cartao painel-desempenho">
+            <header className="painel-cartao-cabecalho">
+              <Icone nome="grafico" tamanho={20} className="painel-cartao-icone" />
+              <h2 className="painel-cartao-titulo">Vendas por Mês</h2>
+              <select
+                className="painel-seletor"
+                aria-label="Período do gráfico"
+                value={periodo}
+                disabled={!dados}
+                onChange={(e) => setPeriodo(Number(e.target.value))}
+              >
+                {PERIODOS.map((p) => (
+                  <option key={p.valor} value={p.valor}>
+                    {p.rotulo}
+                  </option>
+                ))}
+              </select>
+            </header>
+            {resumo.carregando && !dados && <Carregando />}
+            {dados &&
+              (temVenda ? (
+                <div className="painel-grafico-corpo">
+                  <GraficoLinha pontos={pontos} />
+                </div>
+              ) : (
+                <p className="painel-vazio">Ainda não há vendas neste período.</p>
               ))}
-            </select>
-          </header>
-          {resumo.carregando && !dados && <Carregando />}
-          {dados &&
-            (temVenda ? (
-              <div className="painel-grafico-corpo">
-                <GraficoLinha pontos={pontos} />
-              </div>
-            ) : (
-              <p className="painel-vazio">Ainda não há vendas neste período.</p>
-            ))}
-        </section>
+          </section>
+        )}
 
         <section className="painel-cartao painel-avisos">
           <header className="painel-cartao-cabecalho">

@@ -279,7 +279,8 @@ router.get(
     const gestor = u.perfil === 'GESTOR';
     const [cartoes, desempenho, destaque, recentes] = await Promise.all([
       gestor ? cartoesGestor() : cartoesGarcom(),
-      vendasPorMes(),
+      // As vendas do restaurante são assunto do gestor: o garçom não recebe o gráfico.
+      gestor ? vendasPorMes() : Promise.resolve([]),
       gestor ? destaqueGestor() : destaqueGarcom(),
       pedidosRecentes(),
     ]);
