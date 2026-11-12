@@ -13,10 +13,13 @@
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL 16">
 </p>
 
+<p align="center"><img src="docs/imagens/painel-claro.png" alt="Painel do gestor" width="900"></p>
+
 ## Sumário
 
 - [Visão geral](#visão-geral)
 - [Funcionalidades](#funcionalidades)
+- [Telas](#telas)
 - [Instalação rápida](#instalação-rápida)
 - [Primeiro acesso](#primeiro-acesso)
 - [Cardápio na mesa (QR code)](#cardápio-na-mesa-qr-code)
@@ -66,6 +69,35 @@ Um único app tem três entradas:
 
 O sino do topo avisa a equipe de pedido novo, pedido pronto e mesa chamando. As telas de pedidos e de mesas se atualizam sozinhas a cada poucos segundos.
 
+## Telas
+
+Os dados dos prints são fictícios (dados de demonstração). As fotos dos pratos foram geradas por IA.
+
+**Cardápio na mesa (cliente, no celular)**
+
+<p>
+  <img src="docs/imagens/cliente-cardapio.png" alt="Cardápio da mesa no celular" width="300">
+  <img src="docs/imagens/cliente-pedidos.png" alt="Acompanhamento dos pedidos da mesa no celular" width="300">
+</p>
+
+**Fila de pedidos**
+
+<img src="docs/imagens/pedidos.png" alt="Fila de pedidos em três colunas" width="900">
+
+**Mesas e contas**
+
+<img src="docs/imagens/mesas.png" alt="Mesas com situação, total em aberto e chamado" width="900">
+
+**Cardápio (gestão)**
+
+<img src="docs/imagens/cardapio.png" alt="Produtos do cardápio com foto, preço e situação" width="900">
+
+**Tema escuro e login**
+
+<img src="docs/imagens/painel-escuro.png" alt="Painel do gestor no tema escuro" width="900">
+
+<img src="docs/imagens/login.png" alt="Tela de login" width="900">
+
 ## Instalação rápida
 
 Requisito: [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado e aberto.
@@ -114,7 +146,7 @@ Para testar com cardápio, mesas e alguns meses de pedidos fictícios, instale c
 - Windows: `powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -Demo`
 - Linux e macOS: `bash instalar.sh --demo`
 
-A demonstração cria dois garçons (`ana@restaurante.demo` e `bruno@restaurante.demo`, senha `garcom1234`). Use só para teste.
+Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`). A demonstração cria dois garçons (`ana@restaurante.demo` e `bruno@restaurante.demo`, senha `garcom1234`). Use só para teste.
 
 ## Configuração
 

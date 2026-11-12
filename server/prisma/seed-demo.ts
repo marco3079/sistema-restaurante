@@ -57,6 +57,32 @@ const CARDAPIO: { categoria: string; produtos: [string, string, number][] }[] = 
   },
 ];
 
+// Foto de cada item da demonstração: arquivo em client/public/cardapio/<nome>.jpg, servido pelo site.
+const FOTOS: Record<string, string> = {
+  'Bruschetta de tomate': 'bruschetta',
+  'Bolinho de bacalhau': 'bolinho-bacalhau',
+  'Batata frita': 'batata-frita',
+  'Salada caesar': 'salada-caesar',
+  'Filé à parmegiana': 'file-parmegiana',
+  'Risoto de cogumelos': 'risoto-cogumelos',
+  'Salmão grelhado': 'salmao-grelhado',
+  'Picanha na chapa': 'picanha-chapa',
+  'Espaguete à bolonhesa': 'espaguete-bolonhesa',
+  'Moqueca de peixe': 'moqueca-peixe',
+  'Hambúrguer da casa': 'hamburguer',
+  'Sanduíche de frango': 'sanduiche-frango',
+  'Pizza marguerita': 'pizza-marguerita',
+  'Pudim de leite': 'pudim-leite',
+  'Petit gâteau': 'petit-gateau',
+  'Mousse de maracujá': 'mousse-maracuja',
+  'Água mineral': 'agua-mineral',
+  'Refrigerante lata': 'refrigerante-lata',
+  'Suco natural': 'suco-natural',
+  'Cerveja long neck': 'cerveja-long-neck',
+  Caipirinha: 'caipirinha',
+  'Café expresso': 'cafe-expresso',
+};
+
 const FORMAS = ['Dinheiro', 'Pix', 'Cartão de débito', 'Cartão de crédito'];
 
 // Gerador simples e repetível, para a demonstração sair sempre igual.
@@ -88,7 +114,13 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
     const categoria = await prisma.categoria.create({ data: { nome: grupo.categoria, ordem } });
     for (const [nome, descricao, preco] of grupo.produtos) {
       const produto = await prisma.produto.create({
-        data: { categoriaId: categoria.id, nome, descricao, preco: preco.toFixed(2) },
+        data: {
+          categoriaId: categoria.id,
+          nome,
+          descricao,
+          preco: preco.toFixed(2),
+          imagem: FOTOS[nome] ? `/cardapio/${FOTOS[nome]}.jpg` : null,
+        },
       });
       produtos.push({ id: produto.id, nome, preco });
     }
