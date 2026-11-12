@@ -517,3 +517,224 @@
   font-size: 0.9rem;
   color: var(--cor-texto-suave);
 }
+
+/* ---------- Abrir o perfil do prato ---------- */
+
+/* O cartão inteiro abre o perfil: o botão do nome se estende por cima do cartão;
+   os controles de quantidade ficam acima dele. */
+.mesa-cli-produto {
+  position: relative;
+}
+
+.mesa-cli-abrir {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mesa-cli-abrir::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--raio);
+}
+
+.mesa-cli-abrir:focus-visible {
+  outline: none;
+}
+
+.mesa-cli-abrir:focus-visible::after {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.mesa-cli-produto-base .mesa-cli-adicionar,
+.mesa-cli-produto-base .mesa-cli-quantidade {
+  position: relative;
+  z-index: 1;
+}
+
+.mesa-cli-ver {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cor-primaria);
+}
+
+/* ---------- Perfil do prato ---------- */
+
+.prato {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.prato-foto {
+  align-self: center;
+  width: min(100%, 300px);
+  aspect-ratio: 1;
+  border-radius: var(--raio);
+  object-fit: cover;
+}
+
+.prato-topo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.prato-preco {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--cor-primaria);
+}
+
+.prato-resumo {
+  margin: 0;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.prato-detalhes {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--cor-texto-suave);
+}
+
+.prato-fatos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prato-fatos li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+  border: 1px solid var(--cor-borda);
+  color: var(--cor-texto);
+  font-size: 0.9rem;
+}
+
+.prato-fatos svg {
+  flex: none;
+  color: var(--cor-primaria);
+}
+
+.prato-fatos strong {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+}
+
+.prato-alergenicos {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-laranja-suave);
+  color: var(--cor-texto);
+  font-size: 0.9rem;
+}
+
+.prato-titulo {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.prato-ingredientes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.prato-ingredientes li {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-texto);
+  font-size: 0.86rem;
+}
+
+.prato-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  font-size: 0.92rem;
+}
+
+.prato-tabela caption {
+  padding-bottom: 0.4rem;
+  text-align: left;
+  font-size: 0.82rem;
+  color: var(--cor-texto-suave);
+}
+
+.prato-tabela th,
+.prato-tabela td {
+  padding: 0.5rem 0.8rem;
+  border-top: 1px solid var(--cor-borda);
+  color: var(--cor-texto);
+}
+
+.prato-tabela tr:first-child th,
+.prato-tabela tr:first-child td {
+  border-top: 0;
+  background: var(--cor-superficie-2);
+  font-weight: 800;
+}
+
+.prato-tabela th {
+  text-align: left;
+  font-weight: 600;
+}
+
+.prato-tabela td {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.prato-tabela-sub th {
+  padding-left: 1.6rem;
+  font-weight: 400;
+  color: var(--cor-texto-suave);
+}
+
+.prato-nota {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+}
+
+.prato-rodape {
+  position: sticky;
+  bottom: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0 -0.25rem;
+  padding: 0.75rem 0.25rem;
+  background: var(--cor-superficie);
+  border-top: 1px solid var(--cor-borda);
+}

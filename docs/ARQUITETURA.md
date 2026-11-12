@@ -48,7 +48,7 @@ Na subida, o contêiner `api` roda `prisma db push` (cria ou atualiza as tabelas
 Definido em `server/prisma/schema.prisma`.
 
 - `Usuario`: conta da equipe, com `perfil` (`GESTOR` ou `GARCOM`).
-- `Categoria` e `Produto`: o cardápio. `Produto.disponivel = false` é item esgotado; `Produto.ativo = false` é item excluído que continua no histórico.
+- `Categoria` e `Produto`: o cardápio. `Produto.disponivel = false` é item esgotado; `Produto.ativo = false` é item excluído que continua no histórico. O produto também guarda a ficha do prato (apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional).
 - `Mesa`: número, nome, lugares, `codigo` (segredo do QR code) e `chamandoDesde` (cliente chamou o garçom).
 - `Pedido` e `ItemPedido`: o item guarda a cópia do nome e do preço do produto no momento do pedido.
 - `LogAtividade`, `ConfiguracaoPlataforma`, `TokenSenha`, `EmailEnviado`: apoio.

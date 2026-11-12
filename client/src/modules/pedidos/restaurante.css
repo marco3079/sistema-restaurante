@@ -563,3 +563,25 @@
   font-weight: 700;
   color: var(--cor-texto);
 }
+
+/* ---------- Ficha do prato (formulário do gestor) ---------- */
+
+.ficha-grupo {
+  margin: 1rem 0;
+  padding: 0.9rem 1rem 0.3rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+}
+
+.ficha-grupo legend {
+  padding: 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--cor-texto-suave);
+}
+
+.ficha-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 0 0.9rem;
+}

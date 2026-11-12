@@ -1,0 +1,203 @@
+[
+  {
+    "categoria": "Entradas",
+    "produtos": [
+      {
+        "nome": "Bruschetta de tomate", "preco": 24.9, "foto": "bruschetta",
+        "descricao": "Pão italiano tostado, tomate, manjericão e azeite.",
+        "detalhes": "Fatias de pão italiano tostadas na hora, cobertas com tomate maduro picado, alho, manjericão fresco e um fio de azeite extravirgem. Leve e boa para abrir a refeição.",
+        "ingredientes": "Pão italiano, tomate, manjericão fresco, alho, azeite extravirgem, sal, pimenta-do-reino",
+        "porcao": "3 unidades (180 g)", "tempoPreparoMin": 10, "alergenicos": "Glúten",
+        "nutricao": { "kcal": 290, "carboidratosG": 38, "proteinasG": 7, "gordurasG": 12, "gordurasSaturadasG": 2, "fibrasG": 3, "sodioMg": 480 }
+      },
+      {
+        "nome": "Bolinho de bacalhau", "preco": 36, "foto": "bolinho-bacalhau",
+        "descricao": "Seis unidades, com molho de pimenta da casa.",
+        "detalhes": "Bolinhos de bacalhau dessalgado com batata, fritos até ficarem dourados por fora e macios por dentro. Acompanham limão e o molho de pimenta da casa.",
+        "ingredientes": "Bacalhau dessalgado, batata, ovo, cebola, salsinha, alho, óleo vegetal, molho de pimenta, limão",
+        "porcao": "6 unidades (240 g)", "tempoPreparoMin": 15, "alergenicos": "Peixe, ovo",
+        "nutricao": { "kcal": 520, "carboidratosG": 36, "proteinasG": 28, "gordurasG": 29, "gordurasSaturadasG": 5, "fibrasG": 3, "sodioMg": 980 }
+      },
+      {
+        "nome": "Batata frita", "preco": 28, "foto": "batata-frita",
+        "descricao": "Porção para dividir, com maionese de alho.",
+        "detalhes": "Batatas cortadas em palitos grossos, fritas na hora e temperadas com sal e salsinha. Vão à mesa com a maionese de alho da casa.",
+        "ingredientes": "Batata, óleo vegetal, sal, salsinha, maionese, alho",
+        "porcao": "Porção para 2 pessoas (350 g)", "tempoPreparoMin": 12, "alergenicos": "Ovo (maionese)",
+        "nutricao": { "kcal": 780, "carboidratosG": 92, "proteinasG": 9, "gordurasG": 42, "gordurasSaturadasG": 6, "fibrasG": 8, "sodioMg": 720 }
+      },
+      {
+        "nome": "Salada caesar", "preco": 32, "foto": "salada-caesar",
+        "descricao": "Alface romana, frango grelhado, croutons e parmesão.",
+        "detalhes": "Folhas de alface romana com molho caesar, tiras de peito de frango grelhado, croutons crocantes e lascas de parmesão.",
+        "ingredientes": "Alface romana, peito de frango, pão (croutons), queijo parmesão, molho caesar (ovo, azeite, anchova, mostarda, limão, alho)",
+        "porcao": "1 prato (320 g)", "tempoPreparoMin": 12, "alergenicos": "Glúten, leite, ovo, peixe",
+        "nutricao": { "kcal": 430, "carboidratosG": 18, "proteinasG": 34, "gordurasG": 25, "gordurasSaturadasG": 6, "fibrasG": 4, "sodioMg": 890 }
+      }
+    ]
+  },
+  {
+    "categoria": "Pratos principais",
+    "produtos": [
+      {
+        "nome": "Filé à parmegiana", "preco": 68, "foto": "file-parmegiana",
+        "descricao": "Filé empanado, molho de tomate e queijo, com arroz e fritas.",
+        "detalhes": "Filé bovino empanado e frito, coberto com molho de tomate caseiro e muçarela gratinada. Acompanha arroz branco e batata frita.",
+        "ingredientes": "Filé bovino, farinha de trigo, ovo, farinha de rosca, molho de tomate, muçarela, parmesão, arroz, batata, óleo vegetal",
+        "porcao": "1 prato (550 g)", "tempoPreparoMin": 25, "alergenicos": "Glúten, leite, ovo",
+        "nutricao": { "kcal": 1120, "carboidratosG": 98, "proteinasG": 62, "gordurasG": 52, "gordurasSaturadasG": 19, "fibrasG": 7, "sodioMg": 1650 }
+      },
+      {
+        "nome": "Risoto de cogumelos", "preco": 58, "foto": "risoto-cogumelos",
+        "descricao": "Arroz arbóreo, mix de cogumelos e parmesão.",
+        "detalhes": "Arroz arbóreo cozido aos poucos no caldo de legumes, com cogumelos paris, shimeji e shiitake salteados, finalizado com manteiga e parmesão.",
+        "ingredientes": "Arroz arbóreo, cogumelo paris, shimeji, shiitake, cebola, alho, vinho branco, caldo de legumes, manteiga, queijo parmesão, tomilho",
+        "porcao": "1 prato (380 g)", "tempoPreparoMin": 25, "alergenicos": "Leite",
+        "nutricao": { "kcal": 610, "carboidratosG": 82, "proteinasG": 17, "gordurasG": 22, "gordurasSaturadasG": 12, "fibrasG": 4, "sodioMg": 920 }
+      },
+      {
+        "nome": "Salmão grelhado", "preco": 79.9, "foto": "salmao-grelhado",
+        "descricao": "Com legumes na manteiga e purê de batata.",
+        "detalhes": "Posta de salmão grelhada com a pele crocante, servida com legumes salteados na manteiga e purê de batata.",
+        "ingredientes": "Salmão, brócolis, cenoura, abobrinha, batata, leite, manteiga, limão, alecrim, sal, pimenta-do-reino",
+        "porcao": "1 prato (450 g)", "tempoPreparoMin": 20, "alergenicos": "Peixe, leite",
+        "nutricao": { "kcal": 690, "carboidratosG": 38, "proteinasG": 44, "gordurasG": 39, "gordurasSaturadasG": 13, "fibrasG": 7, "sodioMg": 640 }
+      },
+      {
+        "nome": "Picanha na chapa", "preco": 139, "foto": "picanha-chapa",
+        "descricao": "Para duas pessoas, com arroz, farofa e vinagrete.",
+        "detalhes": "Picanha fatiada, servida na chapa quente com alho assado. Acompanha arroz branco, farofa e vinagrete. Diga o ponto da carne na observação do pedido.",
+        "ingredientes": "Picanha bovina, sal grosso, alho, arroz, farinha de mandioca, bacon, cebola, tomate, pimentão, vinagre, azeite",
+        "porcao": "Serve 2 pessoas (900 g, com 500 g de carne)", "tempoPreparoMin": 30, "alergenicos": "Não contém os principais alergênicos",
+        "nutricao": { "kcal": 2150, "carboidratosG": 128, "proteinasG": 132, "gordurasG": 122, "gordurasSaturadasG": 46, "fibrasG": 9, "sodioMg": 2400 }
+      },
+      {
+        "nome": "Espaguete à bolonhesa", "preco": 46, "foto": "espaguete-bolonhesa",
+        "descricao": "Massa fresca com molho de carne.",
+        "detalhes": "Espaguete de massa fresca com molho de carne moída cozido lentamente com tomate, cenoura e ervas. Parmesão ralado à parte.",
+        "ingredientes": "Massa fresca (farinha de trigo, ovo), carne bovina moída, tomate, cebola, cenoura, salsão, alho, vinho tinto, azeite, manjericão, queijo parmesão",
+        "porcao": "1 prato (420 g)", "tempoPreparoMin": 18, "alergenicos": "Glúten, ovo, leite",
+        "nutricao": { "kcal": 720, "carboidratosG": 88, "proteinasG": 36, "gordurasG": 24, "gordurasSaturadasG": 9, "fibrasG": 7, "sodioMg": 1050 }
+      },
+      {
+        "nome": "Moqueca de peixe", "preco": 84, "foto": "moqueca-peixe",
+        "descricao": "Peixe branco, leite de coco e dendê, com arroz e pirão.",
+        "detalhes": "Postas de peixe branco cozidas na panela de barro com leite de coco, azeite de dendê, pimentões e coentro. Acompanha arroz branco e pirão.",
+        "ingredientes": "Peixe branco, leite de coco, azeite de dendê, tomate, cebola, pimentão, coentro, alho, limão, arroz, farinha de mandioca",
+        "porcao": "1 prato (520 g)", "tempoPreparoMin": 30, "alergenicos": "Peixe",
+        "nutricao": { "kcal": 840, "carboidratosG": 74, "proteinasG": 48, "gordurasG": 38, "gordurasSaturadasG": 22, "fibrasG": 5, "sodioMg": 1100 }
+      }
+    ]
+  },
+  {
+    "categoria": "Lanches",
+    "produtos": [
+      {
+        "nome": "Hambúrguer da casa", "preco": 38, "foto": "hamburguer",
+        "descricao": "Pão brioche, 160 g de carne, queijo, alface e tomate.",
+        "detalhes": "Hambúrguer de 160 g de carne bovina grelhado na chapa, com queijo derretido, alface, tomate e o molho da casa, no pão brioche.",
+        "ingredientes": "Pão brioche, carne bovina, queijo prato, alface, tomate, cebola, maionese, mostarda, picles",
+        "porcao": "1 unidade (320 g)", "tempoPreparoMin": 15, "alergenicos": "Glúten, leite, ovo",
+        "nutricao": { "kcal": 760, "carboidratosG": 48, "proteinasG": 41, "gordurasG": 44, "gordurasSaturadasG": 18, "fibrasG": 3, "sodioMg": 1280 }
+      },
+      {
+        "nome": "Sanduíche de frango", "preco": 32, "foto": "sanduiche-frango",
+        "descricao": "Frango grelhado, queijo e maionese verde.",
+        "detalhes": "Peito de frango grelhado com queijo, alface, cebola roxa e maionese verde de ervas, no pão tostado.",
+        "ingredientes": "Pão, peito de frango, queijo muçarela, alface, cebola roxa, maionese, salsinha, cebolinha, limão",
+        "porcao": "1 unidade (290 g)", "tempoPreparoMin": 12, "alergenicos": "Glúten, leite, ovo",
+        "nutricao": { "kcal": 560, "carboidratosG": 44, "proteinasG": 38, "gordurasG": 25, "gordurasSaturadasG": 8, "fibrasG": 3, "sodioMg": 990 }
+      },
+      {
+        "nome": "Pizza marguerita", "preco": 44, "foto": "pizza-marguerita",
+        "descricao": "Individual, com molho de tomate, muçarela e manjericão.",
+        "detalhes": "Pizza individual de massa de longa fermentação, com molho de tomate, muçarela e manjericão fresco, assada em forno bem quente.",
+        "ingredientes": "Farinha de trigo, fermento, molho de tomate, muçarela, manjericão fresco, azeite, sal",
+        "porcao": "1 pizza individual de 25 cm (330 g)", "tempoPreparoMin": 15, "alergenicos": "Glúten, leite",
+        "nutricao": { "kcal": 820, "carboidratosG": 98, "proteinasG": 34, "gordurasG": 31, "gordurasSaturadasG": 14, "fibrasG": 5, "sodioMg": 1480 }
+      }
+    ]
+  },
+  {
+    "categoria": "Sobremesas",
+    "produtos": [
+      {
+        "nome": "Pudim de leite", "preco": 16, "foto": "pudim-leite",
+        "descricao": "Fatia generosa com calda de caramelo.",
+        "detalhes": "Pudim de leite condensado assado em banho-maria, liso e sem furinhos, com calda de caramelo.",
+        "ingredientes": "Leite condensado, leite, ovo, açúcar",
+        "porcao": "1 fatia (130 g)", "tempoPreparoMin": 5, "alergenicos": "Leite, ovo",
+        "nutricao": { "kcal": 330, "carboidratosG": 52, "proteinasG": 8, "gordurasG": 10, "gordurasSaturadasG": 5, "fibrasG": 0, "sodioMg": 120 }
+      },
+      {
+        "nome": "Petit gâteau", "preco": 26, "foto": "petit-gateau",
+        "descricao": "Bolo quente de chocolate com sorvete de creme.",
+        "detalhes": "Bolinho de chocolate assado na hora, com o centro cremoso, servido com uma bola de sorvete de creme.",
+        "ingredientes": "Chocolate meio amargo, manteiga, ovo, açúcar, farinha de trigo, sorvete de creme",
+        "porcao": "1 unidade com sorvete (170 g)", "tempoPreparoMin": 12, "alergenicos": "Glúten, leite, ovo",
+        "nutricao": { "kcal": 540, "carboidratosG": 58, "proteinasG": 8, "gordurasG": 31, "gordurasSaturadasG": 18, "fibrasG": 3, "sodioMg": 150 }
+      },
+      {
+        "nome": "Mousse de maracujá", "preco": 15, "foto": "mousse-maracuja",
+        "descricao": "Leve, com calda da fruta.",
+        "detalhes": "Mousse aerada de maracujá, servida gelada na taça com calda e sementes da fruta.",
+        "ingredientes": "Suco de maracujá, leite condensado, creme de leite, açúcar",
+        "porcao": "1 taça (120 g)", "tempoPreparoMin": 5, "alergenicos": "Leite",
+        "nutricao": { "kcal": 290, "carboidratosG": 38, "proteinasG": 5, "gordurasG": 13, "gordurasSaturadasG": 8, "fibrasG": 1, "sodioMg": 70 }
+      }
+    ]
+  },
+  {
+    "categoria": "Bebidas",
+    "produtos": [
+      {
+        "nome": "Água mineral", "preco": 6, "foto": "agua-mineral",
+        "descricao": "Com ou sem gás, 500 ml.",
+        "detalhes": "Água mineral natural, servida gelada. Diga na observação se prefere com ou sem gás.",
+        "ingredientes": "Água mineral natural",
+        "porcao": "Garrafa de 500 ml", "tempoPreparoMin": 2, "alergenicos": "Não contém os principais alergênicos",
+        "nutricao": { "kcal": 0, "carboidratosG": 0, "proteinasG": 0, "gordurasG": 0, "gordurasSaturadasG": 0, "fibrasG": 0, "sodioMg": 10 }
+      },
+      {
+        "nome": "Refrigerante lata", "preco": 7.5, "foto": "refrigerante-lata",
+        "descricao": "350 ml.",
+        "detalhes": "Refrigerante em lata, servido gelado com copo e gelo. Pergunte ao garçom os sabores do dia.",
+        "ingredientes": "Água gaseificada, açúcar, extratos vegetais, acidulante, aromatizante",
+        "porcao": "Lata de 350 ml", "tempoPreparoMin": 2, "alergenicos": "Não contém os principais alergênicos",
+        "nutricao": { "kcal": 150, "carboidratosG": 37, "proteinasG": 0, "gordurasG": 0, "gordurasSaturadasG": 0, "fibrasG": 0, "sodioMg": 18 }
+      },
+      {
+        "nome": "Suco natural", "preco": 12, "foto": "suco-natural",
+        "descricao": "Laranja, limão, abacaxi ou maracujá. 400 ml.",
+        "detalhes": "Suco feito na hora com a fruta. Escolha o sabor na observação do pedido: laranja, limão, abacaxi ou maracujá. Pode pedir sem açúcar.",
+        "ingredientes": "Fruta fresca, água, gelo, açúcar (opcional)",
+        "porcao": "Copo de 400 ml", "tempoPreparoMin": 5, "alergenicos": "Não contém os principais alergênicos",
+        "nutricao": { "kcal": 180, "carboidratosG": 42, "proteinasG": 3, "gordurasG": 1, "gordurasSaturadasG": 0, "fibrasG": 1, "sodioMg": 5 }
+      },
+      {
+        "nome": "Cerveja long neck", "preco": 13, "foto": "cerveja-long-neck",
+        "descricao": "330 ml.",
+        "detalhes": "Cerveja pilsen em garrafa long neck, servida bem gelada. Venda proibida para menores de 18 anos.",
+        "ingredientes": "Água, malte de cevada, lúpulo",
+        "porcao": "Garrafa de 330 ml", "tempoPreparoMin": 2, "alergenicos": "Glúten. Contém álcool",
+        "nutricao": { "kcal": 140, "carboidratosG": 11, "proteinasG": 1, "gordurasG": 0, "gordurasSaturadasG": 0, "fibrasG": 0, "sodioMg": 14 }
+      },
+      {
+        "nome": "Caipirinha", "preco": 22, "foto": "caipirinha",
+        "descricao": "Limão, cachaça e açúcar.",
+        "detalhes": "Caipirinha clássica de limão taiti macerado com açúcar, cachaça e bastante gelo. Venda proibida para menores de 18 anos.",
+        "ingredientes": "Limão taiti, cachaça, açúcar, gelo",
+        "porcao": "Copo de 300 ml", "tempoPreparoMin": 5, "alergenicos": "Contém álcool",
+        "nutricao": { "kcal": 240, "carboidratosG": 26, "proteinasG": 0, "gordurasG": 0, "gordurasSaturadasG": 0, "fibrasG": 1, "sodioMg": 4 }
+      },
+      {
+        "nome": "Café expresso", "preco": 6.5, "foto": "cafe-expresso",
+        "descricao": "Curto ou longo.",
+        "detalhes": "Café expresso tirado na hora, com grãos torrados e moídos no dia. Diga na observação se prefere curto ou longo.",
+        "ingredientes": "Café em grãos, água",
+        "porcao": "Xícara de 50 ml", "tempoPreparoMin": 3, "alergenicos": "Não contém os principais alergênicos",
+        "nutricao": { "kcal": 5, "carboidratosG": 1, "proteinasG": 0, "gordurasG": 0, "gordurasSaturadasG": 0, "fibrasG": 0, "sodioMg": 2 }
+      }
+    ]
+  }
+]

@@ -4,8 +4,9 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import type { RotaModulo } from '../../lib/rotas';
-import { lerPreco, mensagemErro, precoParaCampo } from '../../lib/restaurante';
-import type { CategoriaDTO, ProdutoDTO } from '../../lib/restaurante';
+import { NUTRIENTES, lerNumero, lerPreco, mensagemErro, precoParaCampo } from '../../lib/restaurante';
+import type { CategoriaDTO, Nutricao, ProdutoDTO } from '../../lib/restaurante';
+import { PerfilDoPrato } from '../../cliente/PerfilDoPrato';
 import {
   Abas,
   AreaTexto,
@@ -136,6 +137,21 @@ function FormProduto({
   const [categoriaId, setCategoriaId] = useState(produto ? String(produto.categoriaId) : '');
   const [imagem, setImagem] = useState<string | null>(produto?.imagem ?? null);
   const [disponivel, setDisponivel] = useState(produto?.disponivel ?? true);
+  const [detalhes, setDetalhes] = useState(produto?.detalhes ?? '');
+  const [ingredientes, setIngredientes] = useState(produto?.ingredientes ?? '');
+  const [porcao, setPorcao] = useState(produto?.porcao ?? '');
+  const [tempo, setTempo] = useState(
+    produto?.tempoPreparoMin === null || produto?.tempoPreparoMin === undefined ? '' : String(produto.tempoPreparoMin),
+  );
+  const [alergenicos, setAlergenicos] = useState(produto?.alergenicos ?? '');
+  const [nutricao, setNutricao] = useState<Record<keyof Nutricao, string>>(() => {
+    const inicial = {} as Record<keyof Nutricao, string>;
+    for (const n of NUTRIENTES) {
+      const valor = produto?.nutricao?.[n.chave];
+      inicial[n.chave] = valor === null || valor === undefined ? '' : String(valor).replace('.', ',');
+    }
+    return inicial;
+  });
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -151,6 +167,20 @@ function FormProduto({
       setErro('Escolha a categoria.');
       return;
     }
+    const minutos = lerNumero(tempo);
+    if (minutos === undefined || (minutos !== null && !Number.isInteger(minutos))) {
+      setErro('O tempo de preparo deve ser um número inteiro de minutos.');
+      return;
+    }
+    const tabela = {} as Nutricao;
+    for (const n of NUTRIENTES) {
+      const lido = lerNumero(nutricao[n.chave]);
+      if (lido === undefined) {
+        setErro(`Na tabela nutricional, "${n.rotulo}" deve ser um número.`);
+        return;
+      }
+      tabela[n.chave] = lido;
+    }
     setEnviando(true);
     try {
       const corpo = {
@@ -160,6 +190,12 @@ function FormProduto({
         categoriaId: Number(categoriaId),
         imagem,
         disponivel,
+        detalhes: detalhes.trim(),
+        ingredientes: ingredientes.trim(),
+        porcao: porcao.trim() || null,
+        tempoPreparoMin: minutos,
+        alergenicos: alergenicos.trim() || null,
+        nutricao: tabela,
       };
       if (produto) {
         await api.put(`/produtos/${produto.id}`, corpo);
@@ -188,8 +224,39 @@ function FormProduto({
           opcoes={categorias.map((c) => ({ valor: String(c.id), rotulo: c.nome }))}
         />
         <Campo rotulo="Preço (R$)" valor={preco} aoMudar={setPreco} obrigatorio />
-        <AreaTexto rotulo="Descrição" valor={descricao} aoMudar={setDescricao} linhas={3} />
+        <AreaTexto rotulo="Descrição curta (aparece na lista)" valor={descricao} aoMudar={setDescricao} linhas={2} />
         <CampoImagem valor={imagem} aoMudar={setImagem} aoErro={setErro} />
+
+        <fieldset className="ficha-grupo">
+          <legend>Ficha do prato (aparece quando o cliente toca no item)</legend>
+          <AreaTexto rotulo="Apresentação do prato" valor={detalhes} aoMudar={setDetalhes} linhas={3} />
+          <AreaTexto
+            rotulo="Ingredientes (separados por vírgula)"
+            valor={ingredientes}
+            aoMudar={setIngredientes}
+            linhas={2}
+          />
+          <div className="ficha-grade">
+            <Campo rotulo="Porção (ex.: 1 prato, 450 g)" valor={porcao} aoMudar={setPorcao} />
+            <Campo rotulo="Tempo de preparo (min)" valor={tempo} aoMudar={setTempo} />
+          </div>
+          <Campo rotulo="Alergênicos (ex.: glúten, leite)" valor={alergenicos} aoMudar={setAlergenicos} />
+        </fieldset>
+
+        <fieldset className="ficha-grupo">
+          <legend>Tabela nutricional da porção (deixe em branco o que não souber)</legend>
+          <div className="ficha-grade">
+            {NUTRIENTES.map((n) => (
+              <Campo
+                key={n.chave}
+                rotulo={`${n.rotulo} (${n.unidade})`}
+                valor={nutricao[n.chave]}
+                aoMudar={(valor) => setNutricao((atual) => ({ ...atual, [n.chave]: valor }))}
+              />
+            ))}
+          </div>
+        </fieldset>
+
         <Caixa rotulo="Disponível para pedido" marcado={disponivel} aoMudar={setDisponivel} />
         <Botao tipo="submit" desabilitado={enviando}>
           Salvar
@@ -207,6 +274,7 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
   const [busca, setBusca] = useState('');
   // null = fechado; { produto: null } = novo; { produto } = editar
   const [form, setForm] = useState<{ produto: ProdutoDTO | null } | null>(null);
+  const [ficha, setFicha] = useState<ProdutoDTO | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const produtos = useDados<ProdutoDTO[]>('/produtos');
@@ -242,8 +310,10 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
           p.disponivel ? `"${p.nome}" marcado como esgotado.` : `"${p.nome}" voltou ao cardápio.`,
         ),
     };
-    if (!podeEditar) return [alternar];
+    const verFicha: AcaoMenu = { rotulo: 'Ver ficha do prato', icone: 'documento', aoClicar: () => setFicha(p) };
+    if (!podeEditar) return [verFicha, alternar];
     return [
+      verFicha,
       { rotulo: 'Editar', icone: 'lapis', aoClicar: () => setForm({ produto: p }) },
       alternar,
       {
@@ -300,6 +370,7 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
           dados={lista}
           chave={(p) => p.id}
           vazio="Nenhum produto encontrado."
+          aoClicarLinha={setFicha}
           colunas={[
             {
               titulo: 'Produto',
@@ -334,6 +405,8 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
           ]}
         />
       )}
+
+      {ficha && <PerfilDoPrato prato={ficha} aoFechar={() => setFicha(null)} />}
 
       {form && (
         <FormProduto

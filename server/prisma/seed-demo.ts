@@ -2,86 +2,39 @@
 // Cria um garçom, o cardápio, as mesas e alguns meses de pedidos para o painel ter números.
 
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import type { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const SENHA_DEMO = 'garcom1234';
 
-const CARDAPIO: { categoria: string; produtos: [string, string, number][] }[] = [
-  {
-    categoria: 'Entradas',
-    produtos: [
-      ['Bruschetta de tomate', 'Pão italiano tostado, tomate, manjericão e azeite.', 24.9],
-      ['Bolinho de bacalhau', 'Seis unidades, com molho de pimenta da casa.', 36],
-      ['Batata frita', 'Porção para dividir, com maionese de alho.', 28],
-      ['Salada caesar', 'Alface romana, frango grelhado, croutons e parmesão.', 32],
-    ],
-  },
-  {
-    categoria: 'Pratos principais',
-    produtos: [
-      ['Filé à parmegiana', 'Filé empanado, molho de tomate e queijo, com arroz e fritas.', 68],
-      ['Risoto de cogumelos', 'Arroz arbóreo, mix de cogumelos e parmesão.', 58],
-      ['Salmão grelhado', 'Com legumes na manteiga e purê de batata.', 79.9],
-      ['Picanha na chapa', 'Para duas pessoas, com arroz, farofa e vinagrete.', 139],
-      ['Espaguete à bolonhesa', 'Massa fresca com molho de carne.', 46],
-      ['Moqueca de peixe', 'Peixe branco, leite de coco e dendê, com arroz e pirão.', 84],
-    ],
-  },
-  {
-    categoria: 'Lanches',
-    produtos: [
-      ['Hambúrguer da casa', 'Pão brioche, 160 g de carne, queijo, alface e tomate.', 38],
-      ['Sanduíche de frango', 'Frango grelhado, queijo e maionese verde.', 32],
-      ['Pizza marguerita', 'Individual, com molho de tomate, muçarela e manjericão.', 44],
-    ],
-  },
-  {
-    categoria: 'Sobremesas',
-    produtos: [
-      ['Pudim de leite', 'Fatia generosa com calda de caramelo.', 16],
-      ['Petit gâteau', 'Bolo quente de chocolate com sorvete de creme.', 26],
-      ['Mousse de maracujá', 'Leve, com calda da fruta.', 15],
-    ],
-  },
-  {
-    categoria: 'Bebidas',
-    produtos: [
-      ['Água mineral', 'Com ou sem gás, 500 ml.', 6],
-      ['Refrigerante lata', '350 ml.', 7.5],
-      ['Suco natural', 'Laranja, limão, abacaxi ou maracujá. 400 ml.', 12],
-      ['Cerveja long neck', '330 ml.', 13],
-      ['Caipirinha', 'Limão, cachaça e açúcar.', 22],
-      ['Café expresso', 'Curto ou longo.', 6.5],
-    ],
-  },
-];
+// Cardápio da demonstração: categorias e produtos com foto (client/public/cardapio/<foto>.jpg) e ficha.
+// Os valores nutricionais são estimativas, só para a demonstração.
+interface ProdutoDemo {
+  nome: string;
+  preco: number;
+  foto: string;
+  descricao: string;
+  detalhes: string;
+  ingredientes: string;
+  porcao: string;
+  tempoPreparoMin: number;
+  alergenicos: string;
+  nutricao: {
+    kcal: number;
+    carboidratosG: number;
+    proteinasG: number;
+    gordurasG: number;
+    gordurasSaturadasG: number;
+    fibrasG: number;
+    sodioMg: number;
+  };
+}
 
-// Foto de cada item da demonstração: arquivo em client/public/cardapio/<nome>.jpg, servido pelo site.
-const FOTOS: Record<string, string> = {
-  'Bruschetta de tomate': 'bruschetta',
-  'Bolinho de bacalhau': 'bolinho-bacalhau',
-  'Batata frita': 'batata-frita',
-  'Salada caesar': 'salada-caesar',
-  'Filé à parmegiana': 'file-parmegiana',
-  'Risoto de cogumelos': 'risoto-cogumelos',
-  'Salmão grelhado': 'salmao-grelhado',
-  'Picanha na chapa': 'picanha-chapa',
-  'Espaguete à bolonhesa': 'espaguete-bolonhesa',
-  'Moqueca de peixe': 'moqueca-peixe',
-  'Hambúrguer da casa': 'hamburguer',
-  'Sanduíche de frango': 'sanduiche-frango',
-  'Pizza marguerita': 'pizza-marguerita',
-  'Pudim de leite': 'pudim-leite',
-  'Petit gâteau': 'petit-gateau',
-  'Mousse de maracujá': 'mousse-maracuja',
-  'Água mineral': 'agua-mineral',
-  'Refrigerante lata': 'refrigerante-lata',
-  'Suco natural': 'suco-natural',
-  'Cerveja long neck': 'cerveja-long-neck',
-  Caipirinha: 'caipirinha',
-  'Café expresso': 'cafe-expresso',
-};
+const CARDAPIO = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'demo-cardapio.json'), 'utf8')
+) as { categoria: string; produtos: ProdutoDemo[] }[];
 
 const FORMAS = ['Dinheiro', 'Pix', 'Cartão de débito', 'Cartão de crédito'];
 
@@ -112,17 +65,23 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
   const produtos: { id: number; nome: string; preco: number }[] = [];
   for (const [ordem, grupo] of CARDAPIO.entries()) {
     const categoria = await prisma.categoria.create({ data: { nome: grupo.categoria, ordem } });
-    for (const [nome, descricao, preco] of grupo.produtos) {
+    for (const item of grupo.produtos) {
       const produto = await prisma.produto.create({
         data: {
           categoriaId: categoria.id,
-          nome,
-          descricao,
-          preco: preco.toFixed(2),
-          imagem: FOTOS[nome] ? `/cardapio/${FOTOS[nome]}.jpg` : null,
+          nome: item.nome,
+          descricao: item.descricao,
+          preco: item.preco.toFixed(2),
+          imagem: `/cardapio/${item.foto}.jpg`,
+          detalhes: item.detalhes,
+          ingredientes: item.ingredientes,
+          porcao: item.porcao,
+          tempoPreparoMin: item.tempoPreparoMin,
+          alergenicos: item.alergenicos,
+          ...item.nutricao,
         },
       });
-      produtos.push({ id: produto.id, nome, preco });
+      produtos.push({ id: produto.id, nome: item.nome, preco: item.preco });
     }
   }
 

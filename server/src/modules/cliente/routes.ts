@@ -4,6 +4,7 @@ import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, validar } from '../../lib/erros';
 import { criarPedido, incluirPedido, itensSchema, paraPedidoDTO } from '../../lib/pedidos';
 import { registrarLog } from '../../lib/log';
+import { fichaDoProduto } from '../../lib/produtos';
 
 // Cardápio da mesa, aberto pelo cliente sem login. O acesso é pelo código da mesa (QR code).
 // Estas rotas nunca devolvem dados da equipe nem de outras mesas.
@@ -93,6 +94,7 @@ publico.get(
             preco: Number(p.preco),
             imagem: p.imagem,
             disponivel: p.disponivel,
+            ...fichaDoProduto(p),
           })),
         })),
     });

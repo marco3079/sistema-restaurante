@@ -10,7 +10,59 @@ export interface CategoriaDTO {
   produtos: number;
 }
 
-export interface ProdutoDTO {
+export interface Nutricao {
+  kcal: number | null;
+  carboidratosG: number | null;
+  proteinasG: number | null;
+  gordurasG: number | null;
+  gordurasSaturadasG: number | null;
+  fibrasG: number | null;
+  sodioMg: number | null;
+}
+
+// Ficha do prato (perfil que o cliente abre no cardápio).
+export interface FichaProduto {
+  detalhes: string;
+  ingredientes: string;
+  porcao: string | null;
+  tempoPreparoMin: number | null;
+  alergenicos: string | null;
+  nutricao: Nutricao | null;
+}
+
+// Linhas da tabela nutricional, na ordem em que aparecem. `sub` é detalhe da linha de cima.
+export const NUTRIENTES: { chave: keyof Nutricao; rotulo: string; unidade: string; sub?: boolean }[] = [
+  { chave: 'kcal', rotulo: 'Valor energético', unidade: 'kcal' },
+  { chave: 'carboidratosG', rotulo: 'Carboidratos', unidade: 'g' },
+  { chave: 'proteinasG', rotulo: 'Proteínas', unidade: 'g' },
+  { chave: 'gordurasG', rotulo: 'Gorduras totais', unidade: 'g' },
+  { chave: 'gordurasSaturadasG', rotulo: 'Gorduras saturadas', unidade: 'g', sub: true },
+  { chave: 'fibrasG', rotulo: 'Fibras', unidade: 'g' },
+  { chave: 'sodioMg', rotulo: 'Sódio', unidade: 'mg' },
+];
+
+// "Tomate, alho\nazeite" -> ['Tomate', 'Alho', 'Azeite']. Vírgula dentro de parênteses não separa.
+export function listaDeIngredientes(texto: string): string[] {
+  const itens: string[] = [];
+  let atual = '';
+  let nivel = 0;
+  for (const letra of texto) {
+    if (letra === '(') nivel += 1;
+    if (letra === ')') nivel = Math.max(0, nivel - 1);
+    if ((letra === ',' || letra === ';' || letra === '\n') && nivel === 0) {
+      itens.push(atual);
+      atual = '';
+    } else {
+      atual += letra;
+    }
+  }
+  itens.push(atual);
+  return [...new Set(itens.map((i) => i.trim()).filter(Boolean))].map(
+    (i) => i.charAt(0).toUpperCase() + i.slice(1),
+  );
+}
+
+export interface ProdutoDTO extends FichaProduto {
   id: number;
   categoriaId: number;
   categoria: { id: number; nome: string };
@@ -115,6 +167,14 @@ export function enderecoDaMesa(codigo: string): string {
 export function lerPreco(texto: string): number | null {
   const limpo = texto.trim().replace(/\./g, '').replace(',', '.');
   if (limpo === '' || !/^\d+(\.\d{1,2})?$/.test(limpo)) return null;
+  return Number(limpo);
+}
+
+// Número digitado ("12,5") para número. Vazio vira null; inválido vira undefined.
+export function lerNumero(texto: string): number | null | undefined {
+  const limpo = texto.trim().replace(',', '.');
+  if (limpo === '') return null;
+  if (!/^\d+(\.\d+)?$/.test(limpo)) return undefined;
   return Number(limpo);
 }
 

@@ -47,6 +47,7 @@ Um único app tem três entradas:
 
 - Painel com vendas do dia, pedidos, mesas ocupadas, valor médio por pedido e gráfico de vendas por mês
 - Cardápio: categorias e produtos com foto, preço, descrição e disponibilidade
+- Ficha de cada prato: apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional
 - Mesas: cadastro, QR code para imprimir, troca do QR code, conta e fechamento
 - Equipe: contas de gestor e garçom, redefinição de senha, ativar e desativar
 - Atividades e log do sistema (quem fez o quê)
@@ -63,6 +64,7 @@ Um único app tem três entradas:
 **Cliente na mesa**
 
 - Cardápio por categoria, com foto e preço
+- Perfil do prato ao tocar no item: foto, apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional
 - Sacola, nome e observação do pedido
 - Acompanhamento da situação de cada pedido e do total da mesa
 - Botão para chamar o garçom
@@ -78,6 +80,13 @@ Os dados dos prints são fictícios (dados de demonstração). As fotos dos prat
 <p>
   <img src="docs/imagens/cliente-cardapio.png" alt="Cardápio da mesa no celular" width="300">
   <img src="docs/imagens/cliente-pedidos.png" alt="Acompanhamento dos pedidos da mesa no celular" width="300">
+</p>
+
+**Perfil do prato (ao tocar em um item)**
+
+<p>
+  <img src="docs/imagens/cliente-prato.png" alt="Perfil do prato com foto, porção, preparo e alergênicos" width="300">
+  <img src="docs/imagens/cliente-prato-nutricao.png" alt="Ingredientes e tabela nutricional do prato" width="300">
 </p>
 
 **Fila de pedidos**
@@ -146,7 +155,7 @@ Para testar com cardápio, mesas e alguns meses de pedidos fictícios, instale c
 - Windows: `powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -Demo`
 - Linux e macOS: `bash instalar.sh --demo`
 
-Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`). A demonstração cria dois garçons (`ana@restaurante.demo` e `bruno@restaurante.demo`, senha `garcom1234`). Use só para teste.
+Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. A demonstração cria dois garçons (`ana@restaurante.demo` e `bruno@restaurante.demo`, senha `garcom1234`). Use só para teste.
 
 ## Configuração
 

@@ -70,7 +70,23 @@ model Produto {
   nome        String
   descricao   String    @default("")
   preco       Decimal   @db.Decimal(10, 2)
-  imagem      String? // data URL reduzida ou endereço http(s)
+  imagem      String? // data URL reduzida, endereço http(s) ou foto do site (/cardapio/...)
+
+  // Ficha do prato, mostrada no perfil que o cliente abre no cardápio.
+  detalhes           String  @default("") // texto de apresentação
+  ingredientes       String  @default("") // separados por vírgula ou um por linha
+  porcao             String? // ex.: "1 prato (450 g)", "Serve 2 pessoas"
+  tempoPreparoMin    Int?
+  alergenicos        String? // ex.: "Glúten, leite"
+  // Tabela nutricional da porção inteira. Nulo = não informado.
+  kcal               Float?
+  carboidratosG      Float?
+  proteinasG         Float?
+  gordurasG          Float?
+  gordurasSaturadasG Float?
+  fibrasG            Float?
+  sodioMg            Float?
+
   disponivel  Boolean   @default(true) // false = esgotado (some do cardápio do cliente)
   ativo       Boolean   @default(true) // false = removido do cardápio (o histórico continua)
   criadoEm    DateTime  @default(now())

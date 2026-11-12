@@ -44,10 +44,12 @@ Todas as rotas ficam sob `/api`. Corpo e resposta em JSON.
 | PUT | `/categorias/:id` | gestor | altera |
 | DELETE | `/categorias/:id` | gestor | exclui (só sem produtos) |
 | GET | `/produtos?categoriaId=&busca=` | logado | produtos do cardápio |
-| POST | `/produtos` | gestor | `{ categoriaId, nome, descricao?, preco, imagem?, disponivel? }` |
+| POST | `/produtos` | gestor | `{ categoriaId, nome, descricao?, preco, imagem?, disponivel? }` mais a ficha (abaixo) |
 | PUT | `/produtos/:id` | gestor | altera |
 | PUT | `/produtos/:id/disponivel` | logado | `{ disponivel }` |
 | DELETE | `/produtos/:id` | gestor | tira do cardápio |
+
+Ficha do prato, aceita em `POST` e `PUT /produtos` e devolvida em todas as leituras de produto (inclusive no cardápio da mesa): `detalhes`, `ingredientes` (separados por vírgula), `porcao`, `tempoPreparoMin`, `alergenicos` e `nutricao: { kcal, carboidratosG, proteinasG, gordurasG, gordurasSaturadasG, fibrasG, sodioMg }`. Cada valor pode ser `null`; `nutricao: null` apaga a tabela.
 
 ## Mesas
 

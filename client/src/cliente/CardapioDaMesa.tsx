@@ -7,14 +7,15 @@ import { useTema } from '../lib/tema';
 import { useDados } from '../lib/useDados';
 import { useAtualizacao } from '../lib/useAtualizacao';
 import { STATUS_PEDIDO, horaCurta, mensagemErro, nomeDaMesa } from '../lib/restaurante';
-import type { StatusPedido } from '../lib/restaurante';
+import type { FichaProduto, StatusPedido } from '../lib/restaurante';
+import { PerfilDoPrato } from './PerfilDoPrato';
 import { AreaTexto, Aviso, Botao, Campo, Carregando, Modal, Selo, formatarMoeda } from '../ui';
 import { Icone } from '../ui/icones';
 import './cliente.css';
 
 // Cardápio da mesa: página pública que o cliente abre pelo QR code. Sem login.
 
-interface ProdutoCliente {
+interface ProdutoCliente extends FichaProduto {
   id: number;
   nome: string;
   descricao: string;
@@ -115,6 +116,8 @@ export function CardapioDaMesa() {
   const [aba, setAba] = useState<'cardapio' | 'pedidos'>('cardapio');
   const [categoriaAtiva, setCategoriaAtiva] = useState<number | null>(null);
   const [sacolaAberta, setSacolaAberta] = useState(false);
+  // Id do prato com o perfil aberto (o prato é lido da lista para refletir preço e disponibilidade atuais).
+  const [pratoAberto, setPratoAberto] = useState<number | null>(null);
   const [nomeCliente, setNomeCliente] = useState('');
   const [observacao, setObservacao] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -306,8 +309,20 @@ export function CardapioDaMesa() {
                         return (
                           <article key={p.id} className={p.disponivel ? 'mesa-cli-produto' : 'mesa-cli-produto mesa-cli-esgotado'}>
                             <div className="mesa-cli-produto-texto">
-                              <h3 className="mesa-cli-produto-nome">{p.nome}</h3>
+                              <h3 className="mesa-cli-produto-nome">
+                                <button
+                                  type="button"
+                                  className="mesa-cli-abrir"
+                                  aria-label={`Ver detalhes de ${p.nome}`}
+                                  onClick={() => setPratoAberto(p.id)}
+                                >
+                                  {p.nome}
+                                </button>
+                              </h3>
                               {p.descricao && <p className="mesa-cli-produto-descricao">{p.descricao}</p>}
+                              <span className="mesa-cli-ver" aria-hidden="true">
+                                Ver ingredientes e tabela nutricional
+                              </span>
                               <div className="mesa-cli-produto-base">
                                 <span className="mesa-cli-preco">{formatarMoeda(p.preco)}</span>
                                 {!p.disponivel ? (
@@ -414,6 +429,42 @@ export function CardapioDaMesa() {
               </button>
             </div>
           )}
+
+          {pratoAberto !== null &&
+            (() => {
+              const prato = produtos.get(pratoAberto);
+              if (!prato) return null;
+              const quantidade = sacola[prato.id] ?? 0;
+              return (
+                <PerfilDoPrato
+                  prato={prato}
+                  aoFechar={() => setPratoAberto(null)}
+                  rodape={
+                    prato.disponivel ? (
+                      <>
+                        {quantidade > 0 && (
+                          <Quantidade nome={prato.nome} valor={quantidade} aoSomar={(d) => somar(prato.id, d)} />
+                        )}
+                        <Botao
+                          aoClicar={() => {
+                            if (quantidade === 0) somar(prato.id, 1);
+                            setPratoAberto(null);
+                          }}
+                        >
+                          {quantidade === 0
+                            ? `Adicionar ao pedido · ${formatarMoeda(prato.preco)}`
+                            : `Pronto · ${formatarMoeda(prato.preco * quantidade)}`}
+                        </Botao>
+                      </>
+                    ) : (
+                      <Botao variante="secundario" aoClicar={() => setPratoAberto(null)}>
+                        Voltar ao cardápio
+                      </Botao>
+                    )
+                  }
+                />
+              );
+            })()}
 
           {sacolaAberta && (
             <Modal aberto titulo="Seu pedido" aoFechar={() => setSacolaAberta(false)}>

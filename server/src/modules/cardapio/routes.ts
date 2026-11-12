@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
 import { validarImagem } from '../../lib/imagem';
+import { dadosDaFicha, fichaCampos, fichaDoProduto } from '../../lib/produtos';
 
 // Cardápio: categorias e produtos. O gestor cadastra; o garçom consulta e marca o que esgotou.
 
@@ -24,6 +25,7 @@ function paraProdutoDTO(p: ProdutoComCategoria) {
     preco: Number(p.preco),
     imagem: p.imagem,
     disponivel: p.disponivel,
+    ...fichaDoProduto(p),
   };
 }
 
@@ -120,6 +122,7 @@ const produtoCampos = {
   preco: z.number().min(0, 'Preço inválido').max(99999, 'Preço inválido'),
   imagem: z.string().nullable().optional(),
   disponivel: z.boolean().optional(),
+  ...fichaCampos,
 };
 const produtoCriarSchema = z.object(produtoCampos);
 const produtoAtualizarSchema = z.object(produtoCampos).partial();
@@ -163,6 +166,9 @@ router.post(
         preco: dados.preco.toFixed(2),
         imagem: validarImagem(dados.imagem, { aceitaEndereco: true }),
         disponivel: dados.disponivel ?? true,
+        ...dadosDaFicha(dados),
+        detalhes: dados.detalhes ?? '',
+        ingredientes: dados.ingredientes ?? '',
       },
       include: incluirCategoria,
     });
@@ -193,6 +199,7 @@ router.put(
         imagem:
           dados.imagem === undefined ? undefined : validarImagem(dados.imagem, { aceitaEndereco: true }),
         disponivel: dados.disponivel,
+        ...dadosDaFicha(dados),
       },
       include: incluirCategoria,
     });
