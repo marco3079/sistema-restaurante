@@ -40,7 +40,14 @@
 .mesa-cli-nome {
   font-size: 1.05rem;
   font-weight: 800;
-  overflow-wrap: anywhere;
+  line-height: 1.2;
+  /* Quebra por palavra, em até duas linhas; nome comprido demais termina em reticências. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: break-word;
 }
 
 .mesa-cli-mesa {
@@ -59,6 +66,62 @@
   background: rgba(255, 255, 255, 0.16);
   color: inherit;
   cursor: pointer;
+}
+
+.mesa-cli-topo-acoes {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 0.5rem;
+}
+
+/* Chamar o garçom, sempre à mão no topo. */
+.mesa-cli-chamar-topo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.4rem 0.95rem;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #1d4ed8;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.mesa-cli-chamar-curto {
+  display: none;
+}
+
+@media (max-width: 520px) {
+  .mesa-cli-chamar-longo {
+    display: none;
+  }
+
+  .mesa-cli-chamar-curto {
+    display: inline;
+  }
+
+  .mesa-cli-chamar-topo {
+    padding: 0.4rem 0.8rem;
+  }
+}
+
+.mesa-cli-chamar-topo:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+.mesa-cli-chamar-topo-avisado {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  box-shadow: none;
+  cursor: default;
 }
 
 .mesa-cli-redondo:focus-visible,

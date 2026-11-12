@@ -262,6 +262,9 @@ export function NovoPedido({
                 <div key={p.id}>
                   {novaCategoria && <p className="itens-categoria">{p.categoria.nome}</p>}
                   <div className="itens-linha">
+                    <span className="produto-miniatura" aria-hidden="true">
+                      {p.imagem ? <img src={p.imagem} alt="" loading="lazy" /> : <Icone nome="cardapio" tamanho={20} />}
+                    </span>
                     <div className="itens-linha-texto">
                       <span className="itens-linha-nome">{p.nome}</span>
                       <span className="itens-linha-preco">

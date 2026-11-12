@@ -229,9 +229,25 @@ export function CardapioDaMesa() {
             <span className="mesa-cli-mesa">{mesa ? nomeDaMesa(mesa) : 'Cardápio'}</span>
           </div>
         </div>
-        <button type="button" className="mesa-cli-redondo" aria-label={rotuloTema} title={rotuloTema} onClick={() => alternar()}>
-          <Icone nome={temaEfetivo === 'escuro' ? 'sol' : 'lua'} tamanho={20} />
-        </button>
+        <div className="mesa-cli-topo-acoes">
+          {cardapio.dados && (
+            <button
+              type="button"
+              className={chamando ? 'mesa-cli-chamar-topo mesa-cli-chamar-topo-avisado' : 'mesa-cli-chamar-topo'}
+              disabled={chamando}
+              aria-label={chamando ? 'Garçom avisado' : 'Chamar garçom'}
+              onClick={() => void chamarGarcom()}
+            >
+              <Icone nome={chamando ? 'visto' : 'sino'} tamanho={18} />
+              {/* Em tela estreita cabe só o texto curto. */}
+              <span className="mesa-cli-chamar-longo">{chamando ? 'Garçom avisado' : 'Chamar garçom'}</span>
+              <span className="mesa-cli-chamar-curto">{chamando ? 'Avisado' : 'Chamar'}</span>
+            </button>
+          )}
+          <button type="button" className="mesa-cli-redondo" aria-label={rotuloTema} title={rotuloTema} onClick={() => alternar()}>
+            <Icone nome={temaEfetivo === 'escuro' ? 'sol' : 'lua'} tamanho={20} />
+          </button>
+        </div>
       </header>
 
       {cardapio.carregando && !cardapio.dados && <Carregando />}
