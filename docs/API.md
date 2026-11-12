@@ -78,7 +78,7 @@ Rotas públicas. O `:codigo` é o segredo da mesa, o mesmo do QR code.
 
 | Método | Rota | O que faz |
 |---|---|---|
-| GET | `/cliente/mesas/:codigo` | `{ mesa, categorias: [{ id, nome, produtos }] }` |
+| GET | `/cliente/mesas/:codigo` | `{ mesa, categorias: [{ id, nome, produtos }], recomendados: [ids], origemRecomendados }` (`CASA` ou `MAIS_PEDIDOS`) |
 | GET | `/cliente/mesas/:codigo/pedidos` | pedidos da conta aberta da mesa, total e se há chamado |
 | POST | `/cliente/mesas/:codigo/pedidos` | `{ itens: [{ produtoId, quantidade }], nomeCliente?, observacao? }` |
 | POST | `/cliente/mesas/:codigo/chamar` | chama o garçom |

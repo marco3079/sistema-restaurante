@@ -89,6 +89,7 @@ model Produto {
 
   disponivel  Boolean   @default(true) // false = esgotado (some do cardápio do cliente)
   ativo       Boolean   @default(true) // false = removido do cardápio (o histórico continua)
+  recomendado Boolean   @default(false) // aparece na área "Recomendados" do cardápio do cliente
   criadoEm    DateTime  @default(now())
 
   itens ItemPedido[]

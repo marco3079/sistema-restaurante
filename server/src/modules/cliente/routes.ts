@@ -79,8 +79,34 @@ publico.get(
       orderBy: [{ ordem: 'asc' }, { nome: 'asc' }],
       include: { produtos: { where: { ativo: true }, orderBy: { nome: 'asc' } } },
     });
+    // Recomendados: os que o gestor marcou. Se ele não marcou nenhum, os mais pedidos dos últimos 30 dias.
+    const noCardapio = categorias.flatMap((c) => c.produtos).filter((p) => p.disponivel);
+    let recomendados = noCardapio.filter((p) => p.recomendado).map((p) => p.id);
+    let origemRecomendados: 'CASA' | 'MAIS_PEDIDOS' = 'CASA';
+    if (recomendados.length === 0) {
+      origemRecomendados = 'MAIS_PEDIDOS';
+      const ids = new Set(noCardapio.map((p) => p.id));
+      const maisPedidos = await prisma.itemPedido.groupBy({
+        by: ['produtoId'],
+        where: {
+          pedido: {
+            status: { not: 'CANCELADO' },
+            criadoEm: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+          },
+        },
+        _sum: { quantidade: true },
+        orderBy: { _sum: { quantidade: 'desc' } },
+        take: 20,
+      });
+      recomendados = maisPedidos
+        .map((m) => m.produtoId)
+        .filter((id) => ids.has(id))
+        .slice(0, 6);
+    }
     res.set('Cache-Control', 'no-store');
     res.json({
+      recomendados: recomendados.slice(0, 10),
+      origemRecomendados,
       mesa: { numero: mesa.numero, nome: mesa.nome, chamando: mesa.chamandoDesde !== null },
       categorias: categorias
         .filter((c) => c.produtos.length > 0)
@@ -94,6 +120,7 @@ publico.get(
             preco: Number(p.preco),
             imagem: p.imagem,
             disponivel: p.disponivel,
+            recomendado: p.recomendado,
             ...fichaDoProduto(p),
           })),
         })),

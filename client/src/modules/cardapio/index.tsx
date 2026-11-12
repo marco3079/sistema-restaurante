@@ -137,6 +137,7 @@ function FormProduto({
   const [categoriaId, setCategoriaId] = useState(produto ? String(produto.categoriaId) : '');
   const [imagem, setImagem] = useState<string | null>(produto?.imagem ?? null);
   const [disponivel, setDisponivel] = useState(produto?.disponivel ?? true);
+  const [recomendado, setRecomendado] = useState(produto?.recomendado ?? false);
   const [detalhes, setDetalhes] = useState(produto?.detalhes ?? '');
   const [ingredientes, setIngredientes] = useState(produto?.ingredientes ?? '');
   const [porcao, setPorcao] = useState(produto?.porcao ?? '');
@@ -190,6 +191,7 @@ function FormProduto({
         categoriaId: Number(categoriaId),
         imagem,
         disponivel,
+        recomendado,
         detalhes: detalhes.trim(),
         ingredientes: ingredientes.trim(),
         porcao: porcao.trim() || null,
@@ -258,6 +260,11 @@ function FormProduto({
         </fieldset>
 
         <Caixa rotulo="Disponível para pedido" marcado={disponivel} aoMudar={setDisponivel} />
+        <Caixa
+          rotulo="Recomendado da casa (aparece em destaque no cardápio do cliente)"
+          marcado={recomendado}
+          aoMudar={setRecomendado}
+        />
         <Botao tipo="submit" desabilitado={enviando}>
           Salvar
         </Botao>{' '}
@@ -317,6 +324,15 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
       { rotulo: 'Editar', icone: 'lapis', aoClicar: () => setForm({ produto: p }) },
       alternar,
       {
+        rotulo: p.recomendado ? 'Tirar dos recomendados' : 'Pôr nos recomendados',
+        icone: 'estrela',
+        aoClicar: () =>
+          void executar(
+            () => api.put(`/produtos/${p.id}`, { recomendado: !p.recomendado }),
+            p.recomendado ? `"${p.nome}" saiu dos recomendados.` : `"${p.nome}" entrou nos recomendados.`,
+          ),
+      },
+      {
         rotulo: 'Excluir',
         icone: 'lixeira',
         perigo: true,
@@ -335,7 +351,12 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
           <Indicador rotulo="Produtos no cardápio" valor={String(todos.length)} cor="azul" icone="cardapio" />
           <Indicador rotulo="Disponíveis" valor={String(todos.length - esgotados)} cor="verde" icone="visto" />
           <Indicador rotulo="Esgotados" valor={String(esgotados)} cor="laranja" icone="pausar" />
-          <Indicador rotulo="Categorias" valor={String(categorias.length)} cor="roxo" icone="lista" />
+          <Indicador
+            rotulo="Recomendados da casa"
+            valor={String(todos.filter((p) => p.recomendado).length)}
+            cor="roxo"
+            icone="estrela"
+          />
         </div>
       )}
 
@@ -380,7 +401,15 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
                     {p.imagem ? <img src={p.imagem} alt="" /> : <Icone nome="cardapio" tamanho={22} />}
                   </span>
                   <span className="produto-texto">
-                    <span className="produto-nome">{p.nome}</span>
+                    <span className="produto-nome">
+                      {p.nome}
+                      {p.recomendado && (
+                        <span className="produto-estrela" title="Recomendado da casa">
+                          <Icone nome="estrela" tamanho={14} />
+                          <span className="oculto">Recomendado da casa</span>
+                        </span>
+                      )}
+                    </span>
                     {p.descricao && <span className="produto-descricao">{p.descricao}</span>}
                   </span>
                 </div>

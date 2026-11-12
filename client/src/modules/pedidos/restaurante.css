@@ -585,3 +585,10 @@
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 0 0.9rem;
 }
+
+.produto-estrela {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  vertical-align: -2px;
+  color: var(--cor-laranja);
+}

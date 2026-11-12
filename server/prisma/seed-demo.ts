@@ -15,6 +15,7 @@ interface ProdutoDemo {
   nome: string;
   preco: number;
   foto: string;
+  recomendado?: boolean;
   descricao: string;
   detalhes: string;
   ingredientes: string;
@@ -78,6 +79,7 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
           porcao: item.porcao,
           tempoPreparoMin: item.tempoPreparoMin,
           alergenicos: item.alergenicos,
+          recomendado: item.recomendado === true,
           ...item.nutricao,
         },
       });

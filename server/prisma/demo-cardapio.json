@@ -40,7 +40,7 @@
     "categoria": "Pratos principais",
     "produtos": [
       {
-        "nome": "Filé à parmegiana", "preco": 68, "foto": "file-parmegiana",
+        "nome": "Filé à parmegiana", "recomendado": true, "preco": 68, "foto": "file-parmegiana",
         "descricao": "Filé empanado, molho de tomate e queijo, com arroz e fritas.",
         "detalhes": "Filé bovino empanado e frito, coberto com molho de tomate caseiro e muçarela gratinada. Acompanha arroz branco e batata frita.",
         "ingredientes": "Filé bovino, farinha de trigo, ovo, farinha de rosca, molho de tomate, muçarela, parmesão, arroz, batata, óleo vegetal",
@@ -56,7 +56,7 @@
         "nutricao": { "kcal": 610, "carboidratosG": 82, "proteinasG": 17, "gordurasG": 22, "gordurasSaturadasG": 12, "fibrasG": 4, "sodioMg": 920 }
       },
       {
-        "nome": "Salmão grelhado", "preco": 79.9, "foto": "salmao-grelhado",
+        "nome": "Salmão grelhado", "recomendado": true, "preco": 79.9, "foto": "salmao-grelhado",
         "descricao": "Com legumes na manteiga e purê de batata.",
         "detalhes": "Posta de salmão grelhada com a pele crocante, servida com legumes salteados na manteiga e purê de batata.",
         "ingredientes": "Salmão, brócolis, cenoura, abobrinha, batata, leite, manteiga, limão, alecrim, sal, pimenta-do-reino",
@@ -64,7 +64,7 @@
         "nutricao": { "kcal": 690, "carboidratosG": 38, "proteinasG": 44, "gordurasG": 39, "gordurasSaturadasG": 13, "fibrasG": 7, "sodioMg": 640 }
       },
       {
-        "nome": "Picanha na chapa", "preco": 139, "foto": "picanha-chapa",
+        "nome": "Picanha na chapa", "recomendado": true, "preco": 139, "foto": "picanha-chapa",
         "descricao": "Para duas pessoas, com arroz, farofa e vinagrete.",
         "detalhes": "Picanha fatiada, servida na chapa quente com alho assado. Acompanha arroz branco, farofa e vinagrete. Diga o ponto da carne na observação do pedido.",
         "ingredientes": "Picanha bovina, sal grosso, alho, arroz, farinha de mandioca, bacon, cebola, tomate, pimentão, vinagre, azeite",
@@ -93,7 +93,7 @@
     "categoria": "Lanches",
     "produtos": [
       {
-        "nome": "Hambúrguer da casa", "preco": 38, "foto": "hamburguer",
+        "nome": "Hambúrguer da casa", "recomendado": true, "preco": 38, "foto": "hamburguer",
         "descricao": "Pão brioche, 160 g de carne, queijo, alface e tomate.",
         "detalhes": "Hambúrguer de 160 g de carne bovina grelhado na chapa, com queijo derretido, alface, tomate e o molho da casa, no pão brioche.",
         "ingredientes": "Pão brioche, carne bovina, queijo prato, alface, tomate, cebola, maionese, mostarda, picles",
@@ -130,7 +130,7 @@
         "nutricao": { "kcal": 330, "carboidratosG": 52, "proteinasG": 8, "gordurasG": 10, "gordurasSaturadasG": 5, "fibrasG": 0, "sodioMg": 120 }
       },
       {
-        "nome": "Petit gâteau", "preco": 26, "foto": "petit-gateau",
+        "nome": "Petit gâteau", "recomendado": true, "preco": 26, "foto": "petit-gateau",
         "descricao": "Bolo quente de chocolate com sorvete de creme.",
         "detalhes": "Bolinho de chocolate assado na hora, com o centro cremoso, servido com uma bola de sorvete de creme.",
         "ingredientes": "Chocolate meio amargo, manteiga, ovo, açúcar, farinha de trigo, sorvete de creme",
@@ -183,7 +183,7 @@
         "nutricao": { "kcal": 140, "carboidratosG": 11, "proteinasG": 1, "gordurasG": 0, "gordurasSaturadasG": 0, "fibrasG": 0, "sodioMg": 14 }
       },
       {
-        "nome": "Caipirinha", "preco": 22, "foto": "caipirinha",
+        "nome": "Caipirinha", "recomendado": true, "preco": 22, "foto": "caipirinha",
         "descricao": "Limão, cachaça e açúcar.",
         "detalhes": "Caipirinha clássica de limão taiti macerado com açúcar, cachaça e bastante gelo. Venda proibida para menores de 18 anos.",
         "ingredientes": "Limão taiti, cachaça, açúcar, gelo",

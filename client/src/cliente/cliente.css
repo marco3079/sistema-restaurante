@@ -738,3 +738,82 @@
   background: var(--cor-superficie);
   border-top: 1px solid var(--cor-borda);
 }
+
+/* ---------- Recomendados ---------- */
+
+.mesa-cli-recomendados .mesa-cli-secao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mesa-cli-recomendados .mesa-cli-secao-titulo svg {
+  color: var(--cor-laranja);
+}
+
+.mesa-cli-recomendados-lista {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0 -1rem;
+  padding: 0.25rem 1rem 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.mesa-cli-recomendados-lista::-webkit-scrollbar {
+  display: none;
+}
+
+.mesa-cli-recomendado {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 0.3rem;
+  width: 148px;
+  padding: 0.5rem 0.5rem 0.7rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra);
+  color: var(--cor-texto);
+  font: inherit;
+  text-align: left;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.mesa-cli-recomendado:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.mesa-cli-recomendado-foto {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.mesa-cli-recomendado-sem-foto {
+  display: grid;
+  place-items: center;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+}
+
+.mesa-cli-recomendado-nome {
+  padding: 0 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-recomendado-preco {
+  margin-top: auto;
+  padding: 0 0.2rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--cor-primaria);
+}

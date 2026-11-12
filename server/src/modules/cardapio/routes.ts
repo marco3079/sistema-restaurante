@@ -25,6 +25,7 @@ function paraProdutoDTO(p: ProdutoComCategoria) {
     preco: Number(p.preco),
     imagem: p.imagem,
     disponivel: p.disponivel,
+    recomendado: p.recomendado,
     ...fichaDoProduto(p),
   };
 }
@@ -122,6 +123,7 @@ const produtoCampos = {
   preco: z.number().min(0, 'Preço inválido').max(99999, 'Preço inválido'),
   imagem: z.string().nullable().optional(),
   disponivel: z.boolean().optional(),
+  recomendado: z.boolean().optional(),
   ...fichaCampos,
 };
 const produtoCriarSchema = z.object(produtoCampos);
@@ -166,6 +168,7 @@ router.post(
         preco: dados.preco.toFixed(2),
         imagem: validarImagem(dados.imagem, { aceitaEndereco: true }),
         disponivel: dados.disponivel ?? true,
+        recomendado: dados.recomendado ?? false,
         ...dadosDaFicha(dados),
         detalhes: dados.detalhes ?? '',
         ingredientes: dados.ingredientes ?? '',
@@ -199,6 +202,7 @@ router.put(
         imagem:
           dados.imagem === undefined ? undefined : validarImagem(dados.imagem, { aceitaEndereco: true }),
         disponivel: dados.disponivel,
+        recomendado: dados.recomendado,
         ...dadosDaFicha(dados),
       },
       include: incluirCategoria,

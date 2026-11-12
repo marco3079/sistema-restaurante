@@ -22,9 +22,12 @@ interface ProdutoCliente extends FichaProduto {
   preco: number;
   imagem: string | null;
   disponivel: boolean;
+  recomendado: boolean;
 }
 
 interface CardapioDTO {
+  recomendados: number[];
+  origemRecomendados: 'CASA' | 'MAIS_PEDIDOS';
   mesa: { numero: number; nome: string | null; chamando: boolean };
   categorias: { id: number; nome: string; produtos: ProdutoCliente[] }[];
 }
@@ -209,6 +212,9 @@ export function CardapioDaMesa() {
   const rotuloTema = `Mudar para o tema ${temaEfetivo === 'escuro' ? 'claro' : 'escuro'}`;
   const mesa = cardapio.dados?.mesa;
   const categorias = cardapio.dados?.categorias ?? [];
+  const recomendados = (cardapio.dados?.recomendados ?? [])
+    .map((id) => produtos.get(id))
+    .filter((p): p is ProdutoCliente => Boolean(p?.disponivel));
   const listaPedidos = pedidos.dados?.pedidos ?? [];
   const emAndamento = listaPedidos.filter((p) => p.status !== 'ENTREGUE' && p.status !== 'CANCELADO').length;
 
@@ -274,6 +280,36 @@ export function CardapioDaMesa() {
                     <Icone nome="cardapio" tamanho={40} />
                     <h1>Cardápio em preparo</h1>
                     <p>Ainda não há itens no cardápio. Chame o garçom para fazer o pedido.</p>
+                  </section>
+                )}
+
+                {recomendados.length > 0 && (
+                  <section className="mesa-cli-recomendados" aria-label="Recomendados">
+                    <h2 className="mesa-cli-secao-titulo">
+                      <Icone nome="estrela" tamanho={18} />
+                      {cardapio.dados.origemRecomendados === 'CASA' ? 'Recomendados da casa' : 'Mais pedidos'}
+                    </h2>
+                    <div className="mesa-cli-recomendados-lista">
+                      {recomendados.map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          className="mesa-cli-recomendado"
+                          aria-label={`Ver detalhes de ${p.nome}, ${formatarMoeda(p.preco)}`}
+                          onClick={() => setPratoAberto(p.id)}
+                        >
+                          {p.imagem ? (
+                            <img className="mesa-cli-recomendado-foto" src={p.imagem} alt="" loading="lazy" />
+                          ) : (
+                            <span className="mesa-cli-recomendado-foto mesa-cli-recomendado-sem-foto">
+                              <Icone nome="cardapio" tamanho={28} />
+                            </span>
+                          )}
+                          <span className="mesa-cli-recomendado-nome">{p.nome}</span>
+                          <span className="mesa-cli-recomendado-preco">{formatarMoeda(p.preco)}</span>
+                        </button>
+                      ))}
+                    </div>
                   </section>
                 )}
 

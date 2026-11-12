@@ -47,6 +47,7 @@ Um único app tem três entradas:
 
 - Painel com vendas do dia, pedidos, mesas ocupadas, valor médio por pedido e gráfico de vendas por mês
 - Cardápio: categorias e produtos com foto, preço, descrição e disponibilidade
+- Recomendados da casa: o gestor marca os itens que aparecem em destaque no cardápio do cliente
 - Ficha de cada prato: apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional
 - Mesas: cadastro, QR code para imprimir, troca do QR code, conta e fechamento
 - Equipe: contas de gestor e garçom, redefinição de senha, ativar e desativar
@@ -64,6 +65,7 @@ Um único app tem três entradas:
 **Cliente na mesa**
 
 - Cardápio por categoria, com foto e preço
+- Área de recomendados no topo: os itens que o gestor marcou como "recomendado da casa" ou, se ele não marcou nenhum, os mais pedidos dos últimos 30 dias
 - Perfil do prato ao tocar no item: foto, apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional
 - Sacola, nome e observação do pedido
 - Acompanhamento da situação de cada pedido e do total da mesa

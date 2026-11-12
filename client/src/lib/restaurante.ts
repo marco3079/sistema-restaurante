@@ -71,6 +71,7 @@ export interface ProdutoDTO extends FichaProduto {
   preco: number;
   imagem: string | null;
   disponivel: boolean;
+  recomendado: boolean;
 }
 
 export interface MesaDTO {
