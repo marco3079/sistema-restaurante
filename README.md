@@ -205,16 +205,16 @@ Cada mesa tem um endereço próprio, `/mesa/<código>`, com um código secreto. 
 
 ## Dados de demonstração
 
-Para testar com cardápio, mesas e alguns meses de pedidos fictícios, instale com a opção de demonstração em um banco novo:
+Para começar com um cardápio de exemplo, 10 mesas e uma conta de cada perfil, instale com a opção de demonstração em um banco novo:
 
 - Windows: `powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -Demo`
 - Linux e macOS: `bash instalar.sh --demo`
 
-Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. A demonstração traz também a planta de exemplo com duas áreas, as mesas posicionadas e uma maquineta simulada. Ela cria estas contas (use só para teste):
+Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. Não há pedidos nem vendas de exemplo: o painel começa zerado. A planta, as áreas e as maquinetas o gestor cadastra (os prints deste README mostram um salão já montado). A demonstração cria uma conta de cada perfil, além do gestor (use só para teste e troque as senhas):
 
 | Perfil | E-mail | Senha |
 |---|---|---|
-| Garçom | `ana@restaurante.demo` e `bruno@restaurante.demo` | `garcom1234` |
+| Garçom | `garcom@restaurante.demo` | `garcom1234` |
 | Cozinha | `cozinha@restaurante.demo` | `cozinha1234` |
 | Limpeza | `limpeza@restaurante.demo` | `limpeza1234` |
 | Recepção | `recepcao@restaurante.demo` | `recepcao1234` |

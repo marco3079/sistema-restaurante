@@ -96,12 +96,12 @@ docker compose down -v
 
 ## Quero ver com dados de exemplo
 
-Para testar com uma restaurante fictícia, use a opção de demonstração numa instalação **nova**:
+Para começar com um cardápio de exemplo, 10 mesas e uma conta de cada perfil, use a opção de demonstração numa instalação **nova**:
 
 - Windows: `powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -Demo`
 - Linux e macOS: `bash instalar.sh --demo`
 
-Os dados de demonstração são fictícios e servem só para teste.
+Os dados de demonstração são de exemplo: troque as senhas e o cardápio pelos seus.
 
 ## Problemas comuns
 
