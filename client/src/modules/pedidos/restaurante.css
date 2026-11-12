@@ -501,6 +501,36 @@
   border-bottom: 0;
 }
 
+/* Foto e nome do item: um botão só, que abre os detalhes. */
+.itens-abrir {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.2rem;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.itens-abrir:hover {
+  background: var(--cor-superficie-2);
+}
+
+.itens-abrir:hover .itens-linha-nome {
+  color: var(--cor-primaria);
+}
+
+.itens-abrir:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 1px;
+}
+
 .itens-linha-texto {
   display: flex;
   flex: 1 1 auto;

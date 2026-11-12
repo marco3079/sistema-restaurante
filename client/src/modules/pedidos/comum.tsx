@@ -14,6 +14,7 @@ import type { MesaDTO, PedidoDTO, ProdutoDTO, StatusPedido } from '../../lib/res
 import { AreaTexto, Aviso, Botao, Campo, Carregando, Modal, Selecao, Selo, formatarMoeda } from '../../ui';
 import { Icone } from '../../ui/icones';
 import type { NomeIcone } from '../../ui/icones';
+import { PerfilDoPrato } from '../../cliente/PerfilDoPrato';
 import './restaurante.css';
 
 // ---------- Peças comuns ----------
@@ -188,8 +189,11 @@ export function NovoPedido({
   const [observacao, setObservacao] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // Id do item com os detalhes abertos.
+  const [detalhe, setDetalhe] = useState<number | null>(null);
 
   const lista = produtos.dados ?? [];
+  const pratoAberto = detalhe === null ? null : lista.find((p) => p.id === detalhe) ?? null;
   const visiveis = useMemo(() => {
     const termo = busca.trim().toLowerCase();
     return termo ? lista.filter((p) => p.nome.toLowerCase().includes(termo)) : lista;
@@ -233,6 +237,58 @@ export function NovoPedido({
     }
   }
 
+  // Com os detalhes abertos, eles tomam o lugar da lista; ao fechar, o pedido volta como estava.
+  if (pratoAberto) {
+    const quantidade = quantidades[pratoAberto.id] ?? 0;
+    return (
+      <PerfilDoPrato
+        prato={pratoAberto}
+        aoFechar={() => setDetalhe(null)}
+        rodape={
+          <>
+            {pratoAberto.disponivel && quantidade > 0 && (
+              <div className="quantidade">
+                <button
+                  type="button"
+                  className="quantidade-botao"
+                  aria-label={`Tirar um ${pratoAberto.nome}`}
+                  onClick={() => somar(pratoAberto.id, -1)}
+                >
+                  <Icone nome="menos" tamanho={16} />
+                </button>
+                <span className="quantidade-valor" aria-live="polite">
+                  {quantidade}
+                </span>
+                <button
+                  type="button"
+                  className="quantidade-botao"
+                  aria-label={`Adicionar um ${pratoAberto.nome}`}
+                  onClick={() => somar(pratoAberto.id, 1)}
+                >
+                  <Icone nome="somar" tamanho={16} />
+                </button>
+              </div>
+            )}
+            {pratoAberto.disponivel && quantidade === 0 ? (
+              <Botao
+                aoClicar={() => {
+                  somar(pratoAberto.id, 1);
+                  setDetalhe(null);
+                }}
+              >
+                Adicionar ao pedido
+              </Botao>
+            ) : (
+              <Botao variante={pratoAberto.disponivel ? 'primario' : 'secundario'} aoClicar={() => setDetalhe(null)}>
+                Voltar ao pedido
+              </Botao>
+            )}
+          </>
+        }
+      />
+    );
+  }
+
   return (
     <Modal aberto titulo={mesaFixa ? `Novo pedido · ${nomeDaMesa(mesaFixa)}` : 'Novo pedido'} aoFechar={aoFechar}>
       <form onSubmit={enviar}>
@@ -262,16 +318,24 @@ export function NovoPedido({
                 <div key={p.id}>
                   {novaCategoria && <p className="itens-categoria">{p.categoria.nome}</p>}
                   <div className="itens-linha">
-                    <span className="produto-miniatura" aria-hidden="true">
-                      {p.imagem ? <img src={p.imagem} alt="" loading="lazy" /> : <Icone nome="cardapio" tamanho={20} />}
-                    </span>
-                    <div className="itens-linha-texto">
-                      <span className="itens-linha-nome">{p.nome}</span>
-                      <span className="itens-linha-preco">
-                        {formatarMoeda(p.preco)}
-                        {!p.disponivel && ' · esgotado'}
+                    {/* Foto e nome abrem os detalhes do item (ingredientes, alergênicos, tabela nutricional). */}
+                    <button
+                      type="button"
+                      className="itens-abrir"
+                      aria-label={`Ver detalhes de ${p.nome}`}
+                      onClick={() => setDetalhe(p.id)}
+                    >
+                      <span className="produto-miniatura" aria-hidden="true">
+                        {p.imagem ? <img src={p.imagem} alt="" loading="lazy" /> : <Icone nome="cardapio" tamanho={20} />}
                       </span>
-                    </div>
+                      <span className="itens-linha-texto">
+                        <span className="itens-linha-nome">{p.nome}</span>
+                        <span className="itens-linha-preco">
+                          {formatarMoeda(p.preco)}
+                          {!p.disponivel && ' · esgotado'}
+                        </span>
+                      </span>
+                    </button>
                     <div className="quantidade">
                       <button
                         type="button"
