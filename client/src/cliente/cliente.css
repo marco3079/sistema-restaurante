@@ -275,6 +275,8 @@
 }
 
 .mesa-cli-foto {
+  /* A foto fica à esquerda do texto (no HTML ela vem depois, por causa da ordem de leitura). */
+  order: -1;
   flex: none;
   align-self: center;
   width: 92px;

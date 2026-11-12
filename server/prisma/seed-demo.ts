@@ -1,6 +1,6 @@
 // Dados de exemplo (só para conhecer o sistema). Entram com SEED_DEMO=true em banco novo.
-// Cria uma conta de cada perfil, os itens do cardápio e as mesas. Sem pedidos nem vendas:
-// o painel começa zerado e o restaurante cadastra o resto (planta, áreas, maquinetas).
+// Cria uma conta de cada perfil, os itens do cardápio e o salão (planta, duas áreas e as mesas
+// posicionadas). Sem pedidos nem vendas: o painel começa zerado. As maquinetas o gestor cadastra.
 
 import crypto from 'crypto';
 import fs from 'fs';
@@ -82,13 +82,66 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
     }
   }
 
-  // Mesas livres, cada uma já com o seu QR code. Sem área e fora da planta.
+  // Salão de exemplo: planta, duas áreas com o garçom de exemplo e as mesas já posicionadas.
+  // As posições batem com o desenho de demo-planta.jpg (frações de 0 a 1).
+  const arquivoPlanta = path.join(__dirname, 'demo-planta.jpg');
+  if (fs.existsSync(arquivoPlanta)) {
+    await prisma.planta.create({
+      data: {
+        id: 1,
+        imagem: `data:image/jpeg;base64,${fs.readFileSync(arquivoPlanta).toString('base64')}`,
+        largura: 1400,
+        altura: 875,
+      },
+    });
+  }
+  const garcom = await prisma.usuario.findFirstOrThrow({ where: { perfil: 'GARCOM' }, select: { id: true } });
+  const salaoPrincipal = await prisma.area.create({
+    data: {
+      nome: 'Salão principal',
+      cor: '#2563eb',
+      x: 0.04,
+      y: 0.2,
+      largura: 0.6,
+      altura: 0.72,
+      garcons: { connect: [{ id: garcom.id }] },
+    },
+  });
+  const varanda = await prisma.area.create({
+    data: {
+      nome: 'Varanda',
+      cor: '#10b981',
+      x: 0.69,
+      y: 0.2,
+      largura: 0.27,
+      altura: 0.72,
+      garcons: { connect: [{ id: garcom.id }] },
+    },
+  });
+  const POSICOES: Record<number, [number, number]> = {
+    1: [0.13, 0.36],
+    2: [0.27, 0.36],
+    3: [0.41, 0.36],
+    4: [0.55, 0.36],
+    5: [0.13, 0.72],
+    6: [0.27, 0.72],
+    7: [0.41, 0.72],
+    8: [0.55, 0.72],
+    9: [0.82, 0.36],
+    10: [0.82, 0.72],
+  };
+
+  // Mesas livres, cada uma já com o seu QR code.
   for (let numero = 1; numero <= TOTAL_DE_MESAS; numero += 1) {
     await prisma.mesa.create({
       data: {
         numero,
+        nome: numero >= 9 ? 'Varanda' : null,
         lugares: numero % 3 === 0 ? 6 : 4,
         codigo: crypto.randomBytes(9).toString('base64url'),
+        areaId: numero >= 9 ? varanda.id : salaoPrincipal.id,
+        posX: POSICOES[numero][0],
+        posY: POSICOES[numero][1],
       },
     });
   }
@@ -97,6 +150,6 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
   for (const conta of CONTAS) {
     console.log(`${conta.perfil}: ${conta.email} (senha ${conta.senha})`);
   }
-  console.log(`${produtos} produtos no cardápio e ${TOTAL_DE_MESAS} mesas.`);
+  console.log(`${produtos} produtos no cardápio, ${TOTAL_DE_MESAS} mesas e o salão de exemplo (planta e 2 áreas).`);
   console.log('=====================================');
 }

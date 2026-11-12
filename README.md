@@ -205,12 +205,12 @@ Cada mesa tem um endereço próprio, `/mesa/<código>`, com um código secreto. 
 
 ## Dados de demonstração
 
-Para começar com um cardápio de exemplo, 10 mesas e uma conta de cada perfil, instale com a opção de demonstração em um banco novo:
+Para começar com um cardápio de exemplo, o salão montado com 10 mesas e uma conta de cada perfil, instale com a opção de demonstração em um banco novo:
 
 - Windows: `powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -Demo`
 - Linux e macOS: `bash instalar.sh --demo`
 
-Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. Não há pedidos nem vendas de exemplo: o painel começa zerado. A planta, as áreas e as maquinetas o gestor cadastra (os prints deste README mostram um salão já montado). A demonstração cria uma conta de cada perfil, além do gestor (use só para teste e troque as senhas):
+Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. O salão também vem montado como exemplo: a planta, as áreas Salão principal e Varanda e as mesas já posicionadas. Não há pedidos nem vendas de exemplo: o painel começa zerado. As maquinetas o gestor cadastra. A demonstração cria uma conta de cada perfil, além do gestor (use só para teste e troque as senhas):
 
 | Perfil | E-mail | Senha |
 |---|---|---|
