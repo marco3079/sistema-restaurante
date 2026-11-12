@@ -640,4 +640,12 @@ export const rotas: RotaModulo[] = [
     elemento: <Cardapio />,
     ordem: 20,
   },
+  {
+    caminho: '/cozinha/cardapio',
+    rotulo: 'Cardápio',
+    icone: 'cardapio',
+    perfis: ['COZINHA'],
+    elemento: <Cardapio />,
+    ordem: 20,
+  },
 ];

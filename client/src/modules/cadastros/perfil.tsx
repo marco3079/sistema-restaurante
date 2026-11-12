@@ -42,6 +42,9 @@ interface PerfilCompletoDTO {
 const PAPEIS: Record<string, string> = {
   GESTOR: 'Gestor',
   GARCOM: 'Garçom',
+  COZINHA: 'Cozinha',
+  LIMPEZA: 'Limpeza',
+  RECEPCAO: 'Recepção',
 };
 
 const ICONE_ATIVIDADE: Record<string, NomeIcone> = {

@@ -18,4 +18,28 @@ export const rotas: RotaModulo[] = [
     elemento: <Painel />,
     ordem: 0,
   },
+  {
+    caminho: '/cozinha',
+    rotulo: 'Início',
+    icone: 'inicio',
+    perfis: ['COZINHA'],
+    elemento: <Painel />,
+    ordem: 0,
+  },
+  {
+    caminho: '/limpeza',
+    rotulo: 'Início',
+    icone: 'inicio',
+    perfis: ['LIMPEZA'],
+    elemento: <Painel />,
+    ordem: 0,
+  },
+  {
+    caminho: '/recepcao',
+    rotulo: 'Início',
+    icone: 'inicio',
+    perfis: ['RECEPCAO'],
+    elemento: <Painel />,
+    ordem: 0,
+  },
 ];

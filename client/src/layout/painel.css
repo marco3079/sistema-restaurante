@@ -231,6 +231,11 @@
   align-items: stretch;
 }
 
+/* Só o destaque e os atalhos (limpeza e recepção). */
+.painel-linha-unica {
+  grid-template-columns: minmax(0, 720px);
+}
+
 /* Sem o gráfico (painel do garçom): duas colunas. */
 .painel-linha-dupla {
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);

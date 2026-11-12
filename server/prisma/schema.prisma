@@ -12,10 +12,24 @@ datasource db {
 
 // ---------- Enums ----------
 
-// GESTOR administra tudo. GARCOM atende as mesas e os pedidos.
+// GESTOR administra tudo. GARCOM atende as mesas, entrega os pedidos e recebe a conta.
+// COZINHA inicia o preparo e marca o pedido como pronto.
+// LIMPEZA limpa as mesas que ficaram vagas e marca como limpas.
+// RECEPCAO vê quais mesas estão livres, ocupadas ou em limpeza e marca a mesa como ocupada ao acomodar o cliente.
 enum Perfil {
   GESTOR
   GARCOM
+  COZINHA
+  LIMPEZA
+  RECEPCAO
+}
+
+// LIVRE -> OCUPADA (cliente chamou, pediu, ou o garçom marcou) -> LIMPEZA (conta paga ou mesa liberada)
+// -> LIVRE (a limpeza marcou como limpa).
+enum EstadoMesa {
+  LIVRE
+  OCUPADA
+  LIMPEZA
 }
 
 // Caminho de um pedido: NOVO -> EM_PREPARO -> PRONTO -> ENTREGUE. CANCELADO sai do caminho.
@@ -33,6 +47,37 @@ enum OrigemPedido {
   GARCOM
 }
 
+// Como as maquinetas se ligam aos garçons (o gestor escolhe).
+// POR_GARCOM: cada maquineta tem um dono, e o que passa nela conta para ele.
+// COMPARTILHADA: qualquer um usa qualquer maquineta, e conta para quem cobrou.
+enum VinculoMaquineta {
+  POR_GARCOM
+  COMPARTILHADA
+}
+
+enum OperadoraMaquineta {
+  SIMULADA
+  MERCADO_PAGO
+  STONE
+  PAGBANK
+  CIELO
+  OUTRA
+}
+
+// MANUAL: o garçom passa o valor na maquineta e confirma no sistema.
+// AUTOMATICA: o sistema manda o valor para a maquineta e recebe o resultado.
+enum IntegracaoMaquineta {
+  MANUAL
+  AUTOMATICA
+}
+
+enum StatusPagamento {
+  PENDENTE
+  APROVADO
+  RECUSADO
+  CANCELADO
+}
+
 // ---------- Pessoas ----------
 
 model Usuario {
@@ -47,16 +92,19 @@ model Usuario {
   foto      String? // endereço http(s) ou data URL (imagem reduzida enviada pelo usuário)
   criadoEm  DateTime @default(now())
 
-  pedidos Pedido[]
+  pedidos    Pedido[]
+  areas      Area[]      @relation("GarconsDaArea")
+  maquinetas Maquineta[]
+  pagamentos Pagamento[]
 }
 
 // ---------- Cardápio ----------
 
 model Categoria {
-  id    Int     @id @default(autoincrement())
-  nome  String  @unique
-  ordem Int     @default(0)
-  ativa Boolean @default(true)
+  id       Int     @id @default(autoincrement())
+  nome     String  @unique
+  ordem    Int     @default(0)
+  ativa    Boolean @default(true)
   // true = excluída pelo gestor, mas guardada porque há pedidos antigos com produtos dela
   excluida Boolean @default(false)
 
@@ -87,10 +135,10 @@ model Produto {
   fibrasG            Float?
   sodioMg            Float?
 
-  disponivel  Boolean   @default(true) // false = esgotado (some do cardápio do cliente)
-  ativo       Boolean   @default(true) // false = removido do cardápio (o histórico continua)
-  recomendado Boolean   @default(false) // aparece na área "Recomendados" do cardápio do cliente
-  criadoEm    DateTime  @default(now())
+  disponivel  Boolean  @default(true) // false = esgotado (some do cardápio do cliente)
+  ativo       Boolean  @default(true) // false = removido do cardápio (o histórico continua)
+  recomendado Boolean  @default(false) // aparece na área "Recomendados" do cardápio do cliente
+  criadoEm    DateTime @default(now())
 
   itens ItemPedido[]
 
@@ -100,16 +148,47 @@ model Produto {
 // ---------- Salão ----------
 
 model Mesa {
-  id            Int       @id @default(autoincrement())
-  numero        Int       @unique
+  id            Int        @id @default(autoincrement())
+  numero        Int        @unique
   nome          String? // ex.: "Varanda"
-  lugares       Int       @default(4)
-  codigo        String    @unique // segredo do endereço do cardápio da mesa (QR code)
-  ativa         Boolean   @default(true)
+  lugares       Int        @default(4)
+  codigo        String     @unique // segredo do endereço do cardápio da mesa (QR code)
+  ativa         Boolean    @default(true)
   chamandoDesde DateTime? // cliente pediu o garçom; null = sem chamado
-  criadaEm      DateTime  @default(now())
+  estado        EstadoMesa @default(LIVRE)
+  estadoDesde   DateTime   @default(now()) // quando entrou no estado atual
+  areaId        Int? // área do salão; os garçons da área respondem pela mesa
+  area          Area?      @relation(fields: [areaId], references: [id])
+  posX          Float? // centro da mesa na planta, de 0 a 1 (fração da largura); null = fora da planta
+  posY          Float?
+  criadaEm      DateTime   @default(now())
 
-  pedidos Pedido[]
+  pedidos    Pedido[]
+  pagamentos Pagamento[]
+}
+
+// Área do salão (ex.: Varanda, Salão principal). Pode ter mais de um garçom responsável.
+model Area {
+  id      Int    @id @default(autoincrement())
+  nome    String @unique
+  cor     String @default("#2563eb")
+  // Retângulo da área na planta, em frações de 0 a 1. Nulo = área sem desenho.
+  x       Float?
+  y       Float?
+  largura Float?
+  altura  Float?
+
+  mesas   Mesa[]
+  garcons Usuario[] @relation("GarconsDaArea")
+}
+
+// Planta do restaurante: imagem enviada pelo gestor (linha única, id = 1).
+model Planta {
+  id           Int      @id @default(1)
+  imagem       String // data URL (jpeg, png ou webp), já reduzida pela tela
+  largura      Int
+  altura       Int
+  atualizadaEm DateTime @updatedAt
 }
 
 // ---------- Pedidos ----------
@@ -128,6 +207,8 @@ model Pedido {
   total          Decimal      @db.Decimal(10, 2)
   pagoEm         DateTime?
   formaPagamento String?
+  pagamentoId    Int? // cobrança que cobre este pedido (pendente ou aprovada)
+  pagamento      Pagamento?   @relation(fields: [pagamentoId], references: [id])
   criadoEm       DateTime     @default(now())
   atualizadoEm   DateTime     @updatedAt
 
@@ -152,6 +233,47 @@ model ItemPedido {
   @@index([pedidoId])
 }
 
+// ---------- Pagamentos ----------
+
+model Maquineta {
+  id            Int                 @id @default(autoincrement())
+  nome          String // ex.: "Maquineta da Ana", "Caixa"
+  operadora     OperadoraMaquineta
+  integracao    IntegracaoMaquineta @default(MANUAL)
+  identificador String? // número de série ou id do terminal na operadora
+  garcomId      Int? // dono da maquineta (modo POR_GARCOM); null = sem dono
+  garcom        Usuario?            @relation(fields: [garcomId], references: [id])
+  ativa         Boolean             @default(true)
+  criadaEm      DateTime            @default(now())
+
+  pagamentos Pagamento[]
+}
+
+// Uma cobrança da conta de uma mesa. Aprovada, marca os pedidos dela como pagos.
+model Pagamento {
+  id                Int             @id @default(autoincrement())
+  mesaId            Int
+  mesa              Mesa            @relation(fields: [mesaId], references: [id])
+  valor             Decimal         @db.Decimal(10, 2)
+  formaPagamento    String // Dinheiro, Pix, Cartão de débito, Cartão de crédito
+  status            StatusPagamento @default(PENDENTE)
+  maquinetaId       Int? // null = recebido sem maquineta (dinheiro, por exemplo)
+  maquineta         Maquineta?      @relation(fields: [maquinetaId], references: [id])
+  garcomId          Int // quem leva o crédito do recebimento (desempenho)
+  garcom            Usuario         @relation(fields: [garcomId], references: [id])
+  iniciadoPorId     Int // quem apertou "cobrar"
+  referenciaExterna String? // número da cobrança na operadora (integração automática)
+  codigoAutorizacao String? // código do comprovante
+  mensagem          String? // situação para mostrar na tela
+  criadoEm          DateTime        @default(now())
+  concluidoEm       DateTime?
+
+  pedidos Pedido[]
+
+  @@index([garcomId, concluidoEm])
+  @@index([mesaId, status])
+}
+
 // ---------- Log de atividades ----------
 
 // Um registro por atividade na plataforma. Visível só para o GESTOR.
@@ -161,7 +283,7 @@ model LogAtividade {
   criadoEm    DateTime @default(now())
   usuarioId   Int? // sem relação: o log sobrevive à exclusão do usuário
   usuarioNome String?
-  perfil      String? // perfil no momento: GESTOR ou GARCOM
+  perfil      String? // perfil no momento: GESTOR, GARCOM, COZINHA, LIMPEZA ou RECEPCAO
   tipo        String // LOGIN, FALHA_LOGIN, SAIDA, TELA, CONSULTA, CRIACAO, ALTERACAO, EXCLUSAO
   modulo      String // ex.: pedidos, mesas, cardapio, sessao
   descricao   String // frase curta em português
@@ -199,6 +321,9 @@ model ConfiguracaoPlataforma {
 
   emailRecuperacao Boolean @default(true)
   emailBoasVindas  Boolean @default(true)
+
+  vinculoMaquineta        VinculoMaquineta @default(COMPARTILHADA)
+  mercadoPagoTokenCifrado String? // AES-256-GCM; nunca sai pela API
 
   atualizadoEm DateTime @updatedAt
 }

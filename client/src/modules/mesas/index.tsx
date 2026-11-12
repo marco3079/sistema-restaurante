@@ -7,15 +7,8 @@ import { useDados } from '../../lib/useDados';
 import { useAtualizacao } from '../../lib/useAtualizacao';
 import { usePlataforma } from '../../lib/plataforma';
 import type { RotaModulo } from '../../lib/rotas';
-import {
-  FORMAS_PAGAMENTO,
-  enderecoDaMesa,
-  horaCurta,
-  mensagemErro,
-  nomeDaMesa,
-  tempoDesde,
-} from '../../lib/restaurante';
-import type { ContaDTO, MesaDTO } from '../../lib/restaurante';
+import { enderecoDaMesa, mensagemErro, nomeDaMesa, tempoDesde } from '../../lib/restaurante';
+import type { AreaDTO, MesaDTO } from '../../lib/restaurante';
 import {
   Aviso,
   Botao,
@@ -31,18 +24,21 @@ import {
 } from '../../ui';
 import type { AcaoMenu } from '../../ui';
 import { Icone } from '../../ui/icones';
-import { Indicador, ListaItens, NovoPedido, SeloStatus } from '../pedidos/comum';
+import { Indicador, NovoPedido } from '../pedidos/comum';
+import { ContaDaMesa } from './Conta';
 
 // ---------- Cadastro da mesa (gestor) ----------
 
 function FormMesa({
   mesa,
   proximoNumero,
+  areas,
   aoFechar,
   aoSalvo,
 }: {
   mesa: MesaDTO | null;
   proximoNumero: number;
+  areas: AreaDTO[];
   aoFechar: () => void;
   aoSalvo: (mensagem: string) => void;
 }) {
@@ -50,6 +46,7 @@ function FormMesa({
   const [nome, setNome] = useState(mesa?.nome ?? '');
   const [lugares, setLugares] = useState(String(mesa?.lugares ?? 4));
   const [ativa, setAtiva] = useState(mesa?.ativa ?? true);
+  const [areaId, setAreaId] = useState(mesa?.area ? String(mesa.area.id) : '');
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -68,7 +65,7 @@ function FormMesa({
     }
     setEnviando(true);
     try {
-      const corpo = { numero: n, nome: nome.trim() || null, lugares: l, ativa };
+      const corpo = { numero: n, nome: nome.trim() || null, lugares: l, ativa, areaId: areaId ? Number(areaId) : null };
       if (mesa) {
         await api.put(`/mesas/${mesa.id}`, corpo);
         aoSalvo('Mesa atualizada.');
@@ -90,6 +87,13 @@ function FormMesa({
         <Campo rotulo="Número" tipo="number" valor={numero} aoMudar={setNumero} obrigatorio />
         <Campo rotulo="Nome ou local (opcional)" valor={nome} aoMudar={setNome} />
         <Campo rotulo="Lugares" tipo="number" valor={lugares} aoMudar={setLugares} obrigatorio />
+        <Selecao
+          rotulo="Área do salão (os garçons da área recebem o aviso quando a mesa chama)"
+          valor={areaId}
+          aoMudar={setAreaId}
+          vazio="Sem área"
+          opcoes={areas.map((a) => ({ valor: String(a.id), rotulo: a.nome }))}
+        />
         {mesa && <Caixa rotulo="Mesa ativa (aceita pedidos)" marcado={ativa} aoMudar={setAtiva} />}
         <Botao tipo="submit" desabilitado={enviando}>
           Salvar
@@ -191,95 +195,6 @@ function QrDaMesa({ mesa, aoFechar }: { mesa: MesaDTO; aoFechar: () => void }) {
   );
 }
 
-// ---------- Conta da mesa ----------
-
-function ContaDaMesa({
-  mesa,
-  aoFechar,
-  aoPago,
-}: {
-  mesa: MesaDTO;
-  aoFechar: () => void;
-  aoPago: (mensagem: string) => void;
-}) {
-  const conta = useDados<ContaDTO>(`/mesas/${mesa.id}/conta`);
-  const [forma, setForma] = useState('');
-  const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
-  async function fechar(e: FormEvent) {
-    e.preventDefault();
-    setErro(null);
-    if (!forma) {
-      setErro('Escolha a forma de pagamento.');
-      return;
-    }
-    setEnviando(true);
-    try {
-      const resposta = await api.post<{ total: number }>(`/mesas/${mesa.id}/fechar-conta`, {
-        formaPagamento: forma,
-      });
-      aoPago(`Conta da ${nomeDaMesa(mesa)} fechada: ${formatarMoeda(resposta.total)} em ${forma}.`);
-      aoFechar();
-    } catch (err) {
-      setErro(mensagemErro(err));
-      setEnviando(false);
-    }
-  }
-
-  const pedidos = conta.dados?.pedidos ?? [];
-  const pendentes = pedidos.filter((p) => p.status !== 'ENTREGUE').length;
-
-  return (
-    <Modal aberto titulo={`Conta · ${nomeDaMesa(mesa)}`} aoFechar={aoFechar}>
-      {conta.erro && <Aviso tipo="erro">{conta.erro}</Aviso>}
-      {conta.carregando && <Carregando />}
-      {conta.dados && pedidos.length === 0 && <p className="fila-vazia">Esta mesa não tem conta aberta.</p>}
-      {conta.dados && pedidos.length > 0 && (
-        <form onSubmit={fechar}>
-          {pedidos.map((p) => (
-            <div className="conta-pedido" key={p.id}>
-              <div className="conta-pedido-topo">
-                <span>
-                  Pedido #{p.id} · {horaCurta(p.criadoEm)}
-                  {p.nomeCliente ? ` · ${p.nomeCliente}` : ''}
-                </span>
-                <SeloStatus status={p.status} />
-              </div>
-              <ListaItens pedido={p} comValor />
-            </div>
-          ))}
-          <div className="conta-total">
-            <span>Total da conta</span>
-            <strong>{formatarMoeda(conta.dados.total)}</strong>
-          </div>
-          {pendentes > 0 && (
-            <Aviso tipo="info">
-              {pendentes === 1
-                ? 'Há 1 pedido que ainda não foi entregue. Ao fechar a conta ele é dado como entregue.'
-                : `Há ${pendentes} pedidos que ainda não foram entregues. Ao fechar a conta eles são dados como entregues.`}
-            </Aviso>
-          )}
-          {erro && <Aviso tipo="erro">{erro}</Aviso>}
-          <Selecao
-            rotulo="Forma de pagamento"
-            valor={forma}
-            aoMudar={setForma}
-            obrigatorio
-            opcoes={FORMAS_PAGAMENTO.map((f) => ({ valor: f, rotulo: f }))}
-          />
-          <Botao tipo="submit" desabilitado={enviando}>
-            {enviando ? 'Fechando...' : 'Receber e fechar conta'}
-          </Botao>{' '}
-          <Botao variante="secundario" aoClicar={aoFechar}>
-            Voltar
-          </Botao>
-        </form>
-      )}
-    </Modal>
-  );
-}
-
 // ---------- Tela ----------
 
 type Janela =
@@ -292,6 +207,7 @@ export function Mesas() {
   const { usuario } = useAuth();
   const gestor = usuario?.perfil === 'GESTOR';
   const mesas = useDados<MesaDTO[]>('/mesas');
+  const areas = useDados<AreaDTO[]>('/areas');
   const [janela, setJanela] = useState<Janela | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
@@ -365,8 +281,19 @@ export function Mesas() {
       {mesas.dados && (
         <div className="resumo">
           <Indicador rotulo="Mesas ocupadas" valor={`${ocupadas.length}/${ativas.length}`} cor="azul" icone="mesas" />
-          <Indicador rotulo="Mesas livres" valor={String(ativas.length - ocupadas.length)} cor="verde" icone="visto" />
-          <Indicador rotulo="Chamando o garçom" valor={String(chamando.length)} cor="laranja" icone="sino" />
+          <Indicador
+            rotulo="Mesas livres"
+            valor={String(ativas.filter((m) => m.situacao === 'LIVRE').length)}
+            cor="verde"
+            icone="visto"
+          />
+          <Indicador
+            rotulo="Aguardando limpeza"
+            valor={String(ativas.filter((m) => m.situacao === 'LIMPEZA').length)}
+            cor="laranja"
+            icone="relogio"
+          />
+          <Indicador rotulo="Chamando o garçom" valor={String(chamando.length)} cor="vermelho" icone="sino" />
           <Indicador rotulo="Em contas abertas" valor={formatarMoeda(emAberto)} cor="roxo" icone="financeiro" />
         </div>
       )}
@@ -388,6 +315,7 @@ export function Mesas() {
           const classes = [
             'mesa',
             ocupada ? 'mesa-ocupada' : '',
+            m.situacao === 'LIMPEZA' ? 'mesa-limpeza' : '',
             m.chamandoDesde ? 'mesa-chamando' : '',
             m.ativa ? '' : 'mesa-inativa',
           ]
@@ -411,17 +339,30 @@ export function Mesas() {
                   <Selo cor="cinza">Desativada</Selo>
                 ) : ocupada ? (
                   <Selo cor="azul">Ocupada</Selo>
+                ) : m.situacao === 'LIMPEZA' ? (
+                  <Selo cor="amarelo">Aguardando limpeza</Selo>
                 ) : (
                   <Selo cor="verde">Livre</Selo>
                 )}
-                {ocupada && <span className="mesa-total">{formatarMoeda(m.totalAberto)}</span>}
+                {m.pedidosAbertos > 0 && <span className="mesa-total">{formatarMoeda(m.totalAberto)}</span>}
               </div>
 
-              {ocupada && (
+              {ocupada && m.pedidosAbertos === 0 && <span className="mesa-detalhe">Sem pedidos ainda</span>}
+
+              {m.pedidosAbertos > 0 && (
                 <span className="mesa-detalhe">
                   {m.pedidosAbertos} {m.pedidosAbertos === 1 ? 'pedido' : 'pedidos'}
                   {m.pedidosPendentes > 0 ? ` · ${m.pedidosPendentes} a entregar` : ''}
                   {m.abertaDesde ? ` · aberta ${tempoDesde(m.abertaDesde, agora)}` : ''}
+                </span>
+              )}
+
+              {m.ativa && (
+                <span className="mesa-detalhe">
+                  {m.area ? `${m.area.nome} · ` : ''}
+                  {m.responsaveis.length > 0
+                    ? `Responsável: ${m.responsaveis.map((r) => r.nome).join(', ')}`
+                    : 'Sem garçom responsável (avisa todos)'}
                 </span>
               )}
 
@@ -450,7 +391,7 @@ export function Mesas() {
                     Novo pedido
                   </Botao>
                 )}
-                {ocupada && (
+                {m.pedidosAbertos > 0 && (
                   <Botao variante="secundario" aoClicar={() => setJanela({ tipo: 'conta', mesa: m })}>
                     Conta
                   </Botao>
@@ -458,6 +399,32 @@ export function Mesas() {
                 <Botao variante="secundario" aoClicar={() => setJanela({ tipo: 'qr', mesa: m })}>
                   QR code
                 </Botao>
+                {m.ativa && m.situacao === 'LIVRE' && (
+                  <Botao
+                    variante="texto"
+                    aoClicar={() => void executar(() => api.post(`/mesas/${m.id}/ocupar`), `Mesa ${m.numero} marcada como ocupada.`)}
+                  >
+                    Ocupar mesa
+                  </Botao>
+                )}
+                {ocupada && m.pedidosAbertos === 0 && (
+                  <Botao
+                    variante="texto"
+                    aoClicar={() =>
+                      void executar(() => api.post(`/mesas/${m.id}/liberar`), `Mesa ${m.numero} liberada para a limpeza.`)
+                    }
+                  >
+                    Liberar mesa
+                  </Botao>
+                )}
+                {m.situacao === 'LIMPEZA' && (
+                  <Botao
+                    variante="texto"
+                    aoClicar={() => void executar(() => api.post(`/mesas/${m.id}/limpa`), `Mesa ${m.numero} limpa e livre.`)}
+                  >
+                    Marcar como limpa
+                  </Botao>
+                )}
               </div>
             </article>
           );
@@ -468,6 +435,7 @@ export function Mesas() {
         <FormMesa
           mesa={janela.mesa}
           proximoNumero={proximoNumero}
+          areas={areas.dados ?? []}
           aoFechar={() => setJanela(null)}
           aoSalvo={(mensagem) => {
             setAviso(mensagem);

@@ -64,7 +64,7 @@ async function garantirEmailLivre(email: string, ignorarUsuarioId?: number): Pro
 
 const senhaSchema = z.string().min(6, 'A senha deve ter pelo menos 6 caracteres');
 const textoOpcional = z.string().nullable().optional();
-const perfilSchema = z.enum(['GESTOR', 'GARCOM']);
+const perfilSchema = z.enum(['GESTOR', 'GARCOM', 'COZINHA', 'LIMPEZA', 'RECEPCAO']);
 
 const usuarioCriarSchema = z.object({
   nome: z.string().trim().min(1, 'Nome obrigatório'),
@@ -232,7 +232,13 @@ router.get(
     const inicioDoDia = new Date();
     inicioDoDia.setHours(0, 0, 0, 0);
     const meus = { garcomId: usuario.id, status: { not: 'CANCELADO' as const } };
-    const [pedidosHoje, pedidosTotal, vendas, atividades] = await Promise.all([
+    const trintaDias = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [recebido, pedidosHoje, pedidosTotal, vendas, atividades] = await Promise.all([
+      prisma.pagamento.aggregate({
+        where: { garcomId: usuario.id, status: 'APROVADO', concluidoEm: { gte: trintaDias } },
+        _sum: { valor: true },
+        _count: { _all: true },
+      }),
       prisma.pedido.count({ where: { ...meus, criadoEm: { gte: inicioDoDia } } }),
       prisma.pedido.count({ where: meus }),
       prisma.pedido.aggregate({ where: meus, _sum: { total: true } }),
@@ -243,7 +249,6 @@ router.get(
         select: { id: true, criadoEm: true, tipo: true, descricao: true, modulo: true },
       }),
     ]);
-    const dias = Math.max(1, Math.floor((Date.now() - usuario.criadoEm.getTime()) / 86400000));
     res.json({
       usuario: {
         id: usuario.id,
@@ -263,7 +268,12 @@ router.get(
           icone: 'financeiro',
           cor: 'verde',
         },
-        { rotulo: 'Dias na equipe', valor: String(dias), icone: 'calendario', cor: 'laranja' },
+        {
+          rotulo: `Recebido por você em 30 dias (${recebido._count._all} ${recebido._count._all === 1 ? 'conta' : 'contas'})`,
+          valor: Number(recebido._sum.valor ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          icone: 'grafico',
+          cor: 'laranja',
+        },
       ],
       atividadeRecente: atividades.map((l) => ({ ...l, criadoEm: l.criadoEm.toISOString() })),
     });

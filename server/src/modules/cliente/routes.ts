@@ -5,6 +5,7 @@ import { asyncHandler, HttpError, validar } from '../../lib/erros';
 import { criarPedido, incluirPedido, itensSchema, paraPedidoDTO } from '../../lib/pedidos';
 import { registrarLog } from '../../lib/log';
 import { fichaDoProduto } from '../../lib/produtos';
+import { ocuparMesa } from '../../lib/mesas';
 
 // Cardápio da mesa, aberto pelo cliente sem login. O acesso é pelo código da mesa (QR code).
 // Estas rotas nunca devolvem dados da equipe nem de outras mesas.
@@ -208,6 +209,8 @@ publico.post(
     if (mesa.chamandoDesde === null) {
       await prisma.mesa.update({ where: { id: mesa.id }, data: { chamandoDesde: new Date() } });
     }
+    // Quem chama o garçom já está sentado: a mesa fica ocupada.
+    await ocuparMesa(mesa.id);
     res.status(204).end();
   })
 );

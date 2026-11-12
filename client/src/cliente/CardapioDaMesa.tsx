@@ -9,6 +9,7 @@ import { useAtualizacao } from '../lib/useAtualizacao';
 import { STATUS_PEDIDO, horaCurta, mensagemErro, nomeDaMesa } from '../lib/restaurante';
 import type { FichaProduto, StatusPedido } from '../lib/restaurante';
 import { PerfilDoPrato } from './PerfilDoPrato';
+import { FaixaRolavel } from './FaixaRolavel';
 import { AreaTexto, Aviso, Botao, Campo, Carregando, Modal, Selo, formatarMoeda } from '../ui';
 import { Icone } from '../ui/icones';
 import './cliente.css';
@@ -289,7 +290,7 @@ export function CardapioDaMesa() {
                       <Icone nome="estrela" tamanho={18} />
                       {cardapio.dados.origemRecomendados === 'CASA' ? 'Recomendados da casa' : 'Mais pedidos'}
                     </h2>
-                    <div className="mesa-cli-recomendados-lista">
+                    <FaixaRolavel rotulo="Recomendados">
                       {recomendados.map((p) => (
                         <button
                           key={p.id}
@@ -309,7 +310,7 @@ export function CardapioDaMesa() {
                           <span className="mesa-cli-recomendado-preco">{formatarMoeda(p.preco)}</span>
                         </button>
                       ))}
-                    </div>
+                    </FaixaRolavel>
                   </section>
                 )}
 

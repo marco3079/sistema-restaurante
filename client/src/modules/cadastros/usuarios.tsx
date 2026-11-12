@@ -28,11 +28,17 @@ import { FichaUsuario, SeloPerfilUsuario } from './FichaUsuario';
 const PERFIS_FILTRO: { valor: string; rotulo: string }[] = [
   { valor: 'GESTOR', rotulo: 'Gestor' },
   { valor: 'GARCOM', rotulo: 'Garçom' },
+  { valor: 'COZINHA', rotulo: 'Cozinha' },
+  { valor: 'LIMPEZA', rotulo: 'Limpeza' },
+  { valor: 'RECEPCAO', rotulo: 'Recepção' },
 ];
 
 // Perfis que se criam por esta tela.
 const PERFIS_ADMINISTRATIVOS: { valor: string; rotulo: string }[] = [
   { valor: 'GARCOM', rotulo: 'Garçom' },
+  { valor: 'COZINHA', rotulo: 'Cozinha' },
+  { valor: 'LIMPEZA', rotulo: 'Limpeza' },
+  { valor: 'RECEPCAO', rotulo: 'Recepção' },
   { valor: 'GESTOR', rotulo: 'Gestor' },
 ];
 

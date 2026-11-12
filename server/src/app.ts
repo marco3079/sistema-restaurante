@@ -76,7 +76,9 @@ function registrarAtividade(req: Request, res: Response, next: NextFunction): vo
         caminho.startsWith('/api/logs/') ||
         caminho === '/api/auth/login' ||
         caminho === '/api/auth/sair' ||
-        caminho === '/api/notificacoes'
+        caminho === '/api/notificacoes' ||
+        caminho === '/api/chamados' ||
+        (metodo === 'GET' && caminho.startsWith('/api/pagamentos/'))
       ) {
         return;
       }

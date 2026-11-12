@@ -4,9 +4,11 @@ import { useAuth } from '../lib/auth';
 import { usePlataforma } from '../lib/plataforma';
 import type { RotaModulo } from '../lib/rotas';
 import { useTema } from '../lib/tema';
+import { NOME_DO_PERFIL, RAIZ_DO_PERFIL } from '../lib/tipos';
 import type { Perfil } from '../lib/tipos';
 import { Icone } from '../ui/icones';
 import { Busca } from './Busca';
+import { Chamados } from './Chamados';
 import { agrupar } from './grupos';
 import { MenuUsuario } from './MenuUsuario';
 import { Notificacoes } from './Notificacoes';
@@ -15,11 +17,11 @@ import './casca.css';
 const CONSULTA_CELULAR = '(max-width: 899px)';
 
 export function nomePortal(perfil: Perfil): string {
-  return perfil === 'GESTOR' ? 'Gestor' : 'Garçom';
+  return NOME_DO_PERFIL[perfil];
 }
 
 export function caminhoDoPerfil(perfil: Perfil): string {
-  return perfil === 'GESTOR' ? '/gestor' : '/garcom';
+  return RAIZ_DO_PERFIL[perfil];
 }
 
 // true abaixo de 900 px. Desktop e celular têm marcação diferente, então a escolha é feita em JS.
@@ -162,6 +164,8 @@ export function Layout({ menu }: { menu: RotaModulo[] }) {
           <Outlet />
         </div>
       </main>
+
+      {(usuario.perfil === 'GESTOR' || usuario.perfil === 'GARCOM') && <Chamados />}
 
       {estreita && (
         <nav className="casca-inferior" aria-label="Menu rápido">

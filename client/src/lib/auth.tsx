@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { api } from './api';
+import { lerPerfil } from './tipos';
 import type { Perfil, PerfilReal, UsuarioLogado } from './tipos';
 
 const CHAVE_TOKEN = 'restaurante.token';
@@ -26,7 +27,7 @@ interface AuthContexto {
 const Contexto = createContext<AuthContexto | null>(null);
 
 export function normalizarUsuario(bruto: UsuarioBruto): UsuarioLogado {
-  const perfil: Perfil = bruto.perfil === 'GESTOR' ? 'GESTOR' : 'GARCOM';
+  const perfil: Perfil = lerPerfil(bruto.perfil);
   return { id: bruto.id, nome: bruto.nome, email: bruto.email, perfil, perfilReal: perfil, foto: bruto.foto ?? null };
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import { useAtualizacao } from '../../lib/useAtualizacao';
 import type { RotaModulo } from '../../lib/rotas';
@@ -27,6 +28,9 @@ function resumoDosItens(p: PedidoDTO): string {
 }
 
 export function Pedidos() {
+  const { usuario } = useAuth();
+  // A cozinha só mexe na fila: não lança pedido nem vê as mesas.
+  const cozinha = usuario?.perfil === 'COZINHA';
   const [visao, setVisao] = useState<Visao>('andamento');
   const [mesaId, setMesaId] = useState('');
   const [status, setStatus] = useState('');
@@ -39,7 +43,7 @@ export function Pedidos() {
   if (mesaId) params.set('mesaId', mesaId);
   if (status && visao !== 'andamento') params.set('status', status);
   const pedidos = useDados<PedidoDTO[]>(`/pedidos?${params.toString()}`);
-  const mesas = useDados<MesaDTO[]>('/mesas');
+  const mesas = useDados<MesaDTO[]>(cozinha ? null : '/mesas');
 
   // A fila se atualiza sozinha: o pedido do cliente aparece sem recarregar a página.
   useAtualizacao(pedidos.recarregar, 8000);
@@ -57,7 +61,10 @@ export function Pedidos() {
   }
 
   return (
-    <Pagina titulo="Pedidos" acoes={<Botao aoClicar={() => setNovoAberto(true)}>Novo pedido</Botao>}>
+    <Pagina
+      titulo={cozinha ? 'Fila da cozinha' : 'Pedidos'}
+      acoes={cozinha ? undefined : <Botao aoClicar={() => setNovoAberto(true)}>Novo pedido</Botao>}
+    >
       {visao === 'andamento' && pedidos.dados && (
         <div className="resumo">
           <Indicador rotulo="Novos" valor={String(contar('NOVO'))} cor="azul" icone="pedidos" />
@@ -87,13 +94,15 @@ export function Pedidos() {
           ))}
         </div>
         <div className="filtros">
-          <Selecao
-            rotulo="Mesa"
-            valor={mesaId}
-            aoMudar={setMesaId}
-            vazio="Todas"
-            opcoes={(mesas.dados ?? []).map((m) => ({ valor: String(m.id), rotulo: nomeDaMesa(m) }))}
-          />
+          {!cozinha && (
+            <Selecao
+              rotulo="Mesa"
+              valor={mesaId}
+              aoMudar={setMesaId}
+              vazio="Todas"
+              opcoes={(mesas.dados ?? []).map((m) => ({ valor: String(m.id), rotulo: nomeDaMesa(m) }))}
+            />
+          )}
           {visao !== 'andamento' && (
             <Selecao rotulo="Situação" valor={status} aoMudar={setStatus} vazio="Todas" opcoes={STATUS_OPCOES} />
           )}
@@ -181,6 +190,14 @@ export const rotas: RotaModulo[] = [
     rotulo: 'Pedidos',
     icone: 'pedidos',
     perfis: ['GARCOM'],
+    elemento: <Pedidos />,
+    ordem: 10,
+  },
+  {
+    caminho: '/cozinha/pedidos',
+    rotulo: 'Fila de pedidos',
+    icone: 'pedidos',
+    perfis: ['COZINHA'],
     elemento: <Pedidos />,
     ordem: 10,
   },

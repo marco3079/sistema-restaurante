@@ -27,4 +27,28 @@ export const rotas: RotaModulo[] = [
     elemento: <MeuPerfil />,
     ordem: 90,
   },
+  {
+    caminho: '/cozinha/perfil',
+    rotulo: 'Meu perfil',
+    icone: 'perfil',
+    perfis: ['COZINHA'],
+    elemento: <MeuPerfil />,
+    ordem: 90,
+  },
+  {
+    caminho: '/limpeza/perfil',
+    rotulo: 'Meu perfil',
+    icone: 'perfil',
+    perfis: ['LIMPEZA'],
+    elemento: <MeuPerfil />,
+    ordem: 90,
+  },
+  {
+    caminho: '/recepcao/perfil',
+    rotulo: 'Meu perfil',
+    icone: 'perfil',
+    perfis: ['RECEPCAO'],
+    elemento: <MeuPerfil />,
+    ordem: 90,
+  },
 ];

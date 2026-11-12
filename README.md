@@ -24,6 +24,7 @@
 - [Primeiro acesso](#primeiro-acesso)
 - [Cardápio na mesa (QR code)](#cardápio-na-mesa-qr-code)
 - [Dados de demonstração](#dados-de-demonstração)
+- [Maquinetas](#maquinetas)
 - [Configuração](#configuração)
 - [Arquitetura](#arquitetura)
 - [Desenvolvimento](#desenvolvimento)
@@ -33,45 +34,63 @@
 
 ## Visão geral
 
-O Sistema de Restaurante cuida do atendimento do salão: o cliente abre o cardápio no celular pelo QR code da mesa e faz o pedido; a equipe vê o pedido na fila, prepara, entrega e fecha a conta. Funciona no computador e no celular.
+O Sistema de Restaurante cuida do atendimento do salão: o cliente abre o cardápio no celular pelo QR code da mesa e faz o pedido; a cozinha prepara, o garçom entrega e recebe a conta, a limpeza libera a mesa e a recepção acomoda o próximo cliente. Funciona no computador e no celular.
 
-Um único app tem três entradas:
+Um único app, com uma entrada para cada pessoa:
 
-- **Gestor** (login): painel com vendas, pedidos, mesas, cardápio, equipe, atividades e configurações.
-- **Garçom** (login): fila de pedidos, mesas e contas, e o cardápio para marcar o que esgotou.
-- **Cliente** (sem login): cardápio da mesa em `/mesa/<código>`, aberto pelo QR code.
+| Quem | Entra com | O que faz |
+|---|---|---|
+| **Gestor** | login | Tudo: painel de vendas, cardápio, mesas, planta do salão, áreas, equipe, maquinetas, desempenho, atividades e configurações. |
+| **Garçom** | login | Lança pedidos, entrega o que a cozinha deixou pronto, atende os chamados das mesas dele, recebe a conta e marca a mesa como ocupada ou liberada. |
+| **Cozinha** | login | Vê a fila, inicia o preparo e marca o pedido como pronto. Marca item esgotado. |
+| **Limpeza** | login | Vê as mesas que ficaram vagas e marca cada uma como limpa. |
+| **Recepção** | login | Vê quais mesas estão livres, em limpeza ou ocupadas e marca a mesa como ocupada ao acomodar o cliente. |
+| **Cliente** | QR code da mesa, sem login | Vê o cardápio, pede, acompanha o pedido e chama o garçom. |
 
 ## Funcionalidades
 
-**Gestor**
+**Pedidos**
 
-- Painel com vendas do dia, pedidos, mesas ocupadas, valor médio por pedido e gráfico de vendas por mês
-- Cardápio: categorias e produtos com foto, preço, descrição e disponibilidade
-- Recomendados da casa: o gestor marca os itens que aparecem em destaque no cardápio do cliente
-- Ficha de cada prato: apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional
-- Mesas: cadastro, QR code para imprimir, troca do QR code, conta e fechamento
-- Equipe: contas de gestor e garçom, redefinição de senha, ativar e desativar
-- Atividades e log do sistema (quem fez o quê)
-- Configurações: nome, logo, cores e envio de e-mails
+- Caminho do pedido: novo, em preparo, pronto, entregue. A cozinha inicia o preparo e marca como pronto; o garçom entrega; o gestor pode tudo. Gestor e garçom cancelam.
+- Fila em três colunas, que se atualiza sozinha.
+- O sino do topo avisa cada perfil do que é dele: pedido novo para a cozinha, pedido pronto e mesa chamando para o garçom, mesa vaga para a limpeza.
 
-**Garçom**
+**Mesas e salão**
 
-- Fila de pedidos em três colunas: novo, em preparo e pronto
-- Lançar pedido para uma mesa
-- Atender o chamado de uma mesa
-- Ver a conta e receber (dinheiro, Pix, débito ou crédito)
-- Marcar um item como esgotado
+- Cada mesa está livre, ocupada ou aguardando limpeza. Ela fica ocupada quando o cliente chama o garçom ou faz um pedido, ou quando o garçom ou a recepção marca. Vai para a limpeza quando a conta é paga ou o garçom libera. Volta a ficar livre quando a limpeza marca como limpa.
+- Planta do restaurante: o gestor importa a imagem da planta, arrasta as mesas para o lugar e desenha as áreas (salão, varanda...).
+- Áreas com garçons responsáveis, com um ou mais garçons por área.
+- Quando o cliente chama, um popup "Mesa X está chamando" aparece na tela dos garçons da área da mesa. Sem área, aparece para o garçom do pedido em aberto; sem nenhum dos dois, para todos os garçons.
+- QR code de cada mesa para imprimir, com troca do código quando preciso.
+
+**Cardápio**
+
+- Categorias e produtos com foto, preço, descrição e disponibilidade.
+- Ficha de cada prato: apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional.
+- Recomendados da casa: o gestor marca os itens que aparecem em destaque. Sem nenhum marcado, aparecem os mais pedidos dos últimos 30 dias.
+
+**Conta e maquineta**
+
+- O garçom recebe a conta em dinheiro, Pix, débito ou crédito.
+- Maquinetas cadastradas pelo gestor, que escolhe a operadora de cada uma (Mercado Pago Point, Stone, PagBank, Cielo ou outra) e como elas se ligam aos garçons: cada garçom com a sua, ou compartilhadas.
+- Integração manual (qualquer operadora): o garçom passa o valor na maquineta e confirma no sistema.
+- Integração automática: o sistema manda o valor para a maquineta e fecha a conta quando ela aprova. Disponível para o Mercado Pago Point e para uma maquineta simulada, de teste. Veja [Maquinetas](#maquinetas).
+- Desempenho dos garçons: pedidos atendidos, contas recebidas, valor recebido (total e na maquineta) e média por conta, por período.
 
 **Cliente na mesa**
 
-- Cardápio por categoria, com foto e preço
-- Área de recomendados no topo: os itens que o gestor marcou como "recomendado da casa" ou, se ele não marcou nenhum, os mais pedidos dos últimos 30 dias
-- Perfil do prato ao tocar no item: foto, apresentação, ingredientes, porção, tempo de preparo, alergênicos e tabela nutricional
-- Sacola, nome e observação do pedido
-- Acompanhamento da situação de cada pedido e do total da mesa
-- Botão para chamar o garçom
+- Cardápio por categoria, com foto e preço, e área de recomendados no topo.
+- Perfil do prato ao tocar no item, com ingredientes e tabela nutricional.
+- Sacola, nome e observação do pedido.
+- Acompanhamento da situação de cada pedido e do total da mesa.
+- Botão para chamar o garçom.
 
-O sino do topo avisa a equipe de pedido novo, pedido pronto e mesa chamando. As telas de pedidos e de mesas se atualizam sozinhas a cada poucos segundos.
+**Gestão**
+
+- Painel com vendas do dia, pedidos, mesas ocupadas, valor médio por pedido e gráfico de vendas por mês (só o gestor vê as vendas).
+- Equipe: contas de gestor, garçom, cozinha, limpeza e recepção.
+- Atividades e log do sistema (quem fez o quê).
+- Nome, logo, cores e envio de e-mails.
 
 ## Telas
 
@@ -84,6 +103,10 @@ Os dados dos prints são fictícios (dados de demonstração). As fotos dos prat
   <img src="docs/imagens/cliente-pedidos.png" alt="Acompanhamento dos pedidos da mesa no celular" width="300">
 </p>
 
+**Recomendados (faixa que rola com o dedo, com o mouse ou pelas setas)**
+
+<img src="docs/imagens/recomendados.png" alt="Área de recomendados no topo do cardápio" width="700">
+
 **Perfil do prato (ao tocar em um item)**
 
 <p>
@@ -94,6 +117,34 @@ Os dados dos prints são fictícios (dados de demonstração). As fotos dos prat
 **Fila de pedidos**
 
 <img src="docs/imagens/pedidos.png" alt="Fila de pedidos em três colunas" width="900">
+
+**Cozinha**
+
+<img src="docs/imagens/cozinha.png" alt="Fila da cozinha, com iniciar preparo e marcar pronto" width="900">
+
+**Salão com a planta, as áreas e as mesas**
+
+<img src="docs/imagens/salao.png" alt="Planta do restaurante com áreas coloridas e mesas posicionadas" width="900">
+
+**Mesa chamando (popup na tela do garçom da área)**
+
+<img src="docs/imagens/chamado.png" alt="Popup avisando que a mesa está chamando" width="900">
+
+**Cobrança na maquineta**
+
+<img src="docs/imagens/cobranca.png" alt="Conta da mesa aguardando a maquineta" width="900">
+
+**Maquinetas e desempenho dos garçons**
+
+<img src="docs/imagens/maquinetas.png" alt="Cadastro de maquinetas e modo de vínculo com os garçons" width="900">
+
+<img src="docs/imagens/desempenho.png" alt="Desempenho dos garçons no período" width="900">
+
+**Limpeza e recepção**
+
+<img src="docs/imagens/limpeza.png" alt="Mesas aguardando limpeza" width="900">
+
+<img src="docs/imagens/recepcao.png" alt="Mesas livres, em limpeza e ocupadas para a recepção" width="900">
 
 **Mesas e contas**
 
@@ -138,8 +189,10 @@ O passo a passo completo, para quem nunca usou o terminal, está em [INSTALAR.md
 1. Abra o endereço do site.
 2. Entre com `gestor@restaurante.local` e a senha `gestor1234`.
 3. Troque a senha em **Meu perfil**.
-4. Cadastre, nesta ordem: categorias, produtos, mesas e a equipe (garçons).
-5. Em **Mesas**, abra o **QR code** de cada mesa e imprima.
+4. Cadastre, nesta ordem: categorias, produtos, mesas e a equipe (garçons, cozinha, limpeza e recepção).
+5. Em **Salão**, importe a planta, posicione as mesas, crie as áreas e escolha os garçons de cada área.
+6. Em **Maquinetas**, cadastre as maquinetas e escolha como elas se ligam aos garçons.
+7. Em **Mesas**, abra o **QR code** de cada mesa e imprima.
 
 ## Cardápio na mesa (QR code)
 
@@ -157,7 +210,14 @@ Para testar com cardápio, mesas e alguns meses de pedidos fictícios, instale c
 - Windows: `powershell -ExecutionPolicy Bypass -File .\instalar.ps1 -Demo`
 - Linux e macOS: `bash instalar.sh --demo`
 
-Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. A demonstração cria dois garçons (`ana@restaurante.demo` e `bruno@restaurante.demo`, senha `garcom1234`). Use só para teste.
+Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`) e ficha completa (`server/prisma/demo-cardapio.json`). Os valores nutricionais da demonstração são estimativas: troque pelos do seu cardápio. A demonstração traz também a planta de exemplo com duas áreas, as mesas posicionadas e uma maquineta simulada. Ela cria estas contas (use só para teste):
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| Garçom | `ana@restaurante.demo` e `bruno@restaurante.demo` | `garcom1234` |
+| Cozinha | `cozinha@restaurante.demo` | `cozinha1234` |
+| Limpeza | `limpeza@restaurante.demo` | `limpeza1234` |
+| Recepção | `recepcao@restaurante.demo` | `recepcao1234` |
 
 ## Configuração
 
@@ -180,6 +240,20 @@ O arquivo `.env` (criado pelo instalador a partir de `.env.example`) define:
 
 O sistema envia e-mails de recuperação de senha e de boas-vindas a novos usuários, depois que o gestor informa uma conta de e-mail em **Configurações > E-mail**: servidor de envio (SMTP), porta, usuário, senha, remetente e o endereço do site. Use **Enviar e-mail de teste** para conferir.
 
+## Maquinetas
+
+O gestor cadastra as maquinetas em **Maquinetas** e escolhe, para cada uma, a operadora e a integração.
+
+- **Manual** (Mercado Pago, Stone, PagBank, Cielo ou outra): ao receber a conta, o garçom escolhe a maquineta, digita o valor nela e confirma no sistema que o pagamento foi aprovado (com o código do comprovante, se quiser). O recebimento fica registrado na maquineta e no nome do garçom.
+- **Automática, Mercado Pago Point**: o sistema envia a cobrança para a maquineta pela API do Mercado Pago (Orders API) e fecha a conta quando ela aprova. O gestor informa o token de acesso (Access Token) da conta em **Maquinetas** e escolhe o terminal em "Buscar terminais". A maquineta precisa estar no modo PDV. Esta integração foi escrita seguindo a documentação do Mercado Pago, mas **ainda não foi testada com uma maquineta real**: teste com valores pequenos antes de usar no dia a dia.
+- **Automática, simulada**: maquineta de teste que aprova sozinha alguns segundos depois. Serve para conhecer o fluxo sem aparelho. Com o identificador `RECUSAR`, ela recusa.
+- Para Stone, PagBank e Cielo a integração automática não está disponível: use a manual.
+
+O gestor também escolhe como as maquinetas se ligam aos garçons:
+
+- **Cada garçom tem a sua**: cada maquineta tem um dono. O garçom só cobra na dele, e o que passa nela conta para ele no desempenho.
+- **Compartilhadas**: qualquer garçom usa qualquer maquineta, e o recebimento conta para quem cobrou.
+
 ## Arquitetura
 
 ```
@@ -190,7 +264,7 @@ server/   Node.js 20 + Express + Prisma (API)
 
 - O servidor carrega sozinho cada pasta de `server/src/modules/<modulo>/routes.ts`. Cada módulo exporta as rotas autenticadas (`default`) e, se tiver, as públicas (`publico`).
 - O cliente junta as rotas de `client/src/modules/<modulo>/index.tsx` e monta o menu pelo perfil.
-- Módulos: `auth`, `cadastros` (equipe e perfil), `cardapio`, `mesas`, `pedidos`, `cliente` (cardápio público da mesa), `painel`, `logs` e `plataforma`.
+- Módulos: `auth`, `cadastros` (equipe e perfil), `cardapio`, `mesas`, `salao` (planta e áreas), `pedidos`, `pagamentos` (maquinetas, cobrança e desempenho), `cliente` (cardápio público da mesa), `painel`, `logs` e `plataforma`.
 
 Mais detalhes em [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e [docs/API.md](docs/API.md).
 
@@ -229,7 +303,7 @@ Este projeto usa a estrutura e o visual do [sistema-escolar](https://github.com/
 
 ## Segurança
 
-Veja [SECURITY.md](SECURITY.md). Em resumo: senhas com bcrypt, login por JWT de 12 horas, permissão por perfil em cada rota, banco e API publicados só em `127.0.0.1` e log de atividades. O cardápio da mesa é público por natureza: quem tem o QR code pode pedir naquela mesa.
+Veja [SECURITY.md](SECURITY.md). Em resumo: senhas com bcrypt, login por JWT de 12 horas, permissão por perfil em cada rota, banco e API publicados só em `127.0.0.1`, token do Mercado Pago guardado cifrado e log de atividades. O cardápio da mesa é público por natureza: quem tem o QR code pode pedir naquela mesa.
 
 ## Licença
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import { RAIZ_DO_PERFIL } from '../lib/tipos';
 import type { Perfil } from '../lib/tipos';
 import { useDados } from '../lib/useDados';
 import { Aviso, Carregando, formatarData } from '../ui';
@@ -62,6 +63,9 @@ interface Atalho {
 const ATALHOS_GESTOR: Atalho[] = [
   { rotulo: 'Ver pedidos', icone: 'pedidos', caminho: '/gestor/pedidos' },
   { rotulo: 'Mesas e contas', icone: 'mesas', caminho: '/gestor/mesas' },
+  { rotulo: 'Salão e planta', icone: 'grade', caminho: '/gestor/salao' },
+  { rotulo: 'Maquinetas', icone: 'financeiro', caminho: '/gestor/maquinetas' },
+  { rotulo: 'Desempenho', icone: 'grafico', caminho: '/gestor/desempenho' },
   { rotulo: 'Editar cardápio', icone: 'cardapio', caminho: '/gestor/cardapio' },
   { rotulo: 'Equipe', icone: 'usuarios', caminho: '/gestor/usuarios' },
   { rotulo: 'Atividades', icone: 'atividade', caminho: '/gestor/atividades' },
@@ -71,18 +75,38 @@ const ATALHOS_GESTOR: Atalho[] = [
 const ATALHOS_GARCOM: Atalho[] = [
   { rotulo: 'Ver pedidos', icone: 'pedidos', caminho: '/garcom/pedidos' },
   { rotulo: 'Mesas e contas', icone: 'mesas', caminho: '/garcom/mesas' },
+  { rotulo: 'Salão', icone: 'grade', caminho: '/garcom/salao' },
   { rotulo: 'Cardápio', icone: 'cardapio', caminho: '/garcom/cardapio' },
   { rotulo: 'Meu perfil', icone: 'perfil', caminho: '/garcom/perfil' },
 ];
 
+const ATALHOS_COZINHA: Atalho[] = [
+  { rotulo: 'Fila de pedidos', icone: 'pedidos', caminho: '/cozinha/pedidos' },
+  { rotulo: 'Marcar item esgotado', icone: 'cardapio', caminho: '/cozinha/cardapio' },
+  { rotulo: 'Meu perfil', icone: 'perfil', caminho: '/cozinha/perfil' },
+];
+
+const ATALHOS_LIMPEZA: Atalho[] = [
+  { rotulo: 'Mesas para limpar', icone: 'mesas', caminho: '/limpeza/mesas' },
+  { rotulo: 'Meu perfil', icone: 'perfil', caminho: '/limpeza/perfil' },
+];
+
+const ATALHOS_RECEPCAO: Atalho[] = [
+  { rotulo: 'Ver mesas', icone: 'mesas', caminho: '/recepcao/mesas' },
+  { rotulo: 'Meu perfil', icone: 'perfil', caminho: '/recepcao/perfil' },
+];
+
 function atalhosDoPerfil(perfil: Perfil | undefined): Atalho[] {
+  if (perfil === 'LIMPEZA') return ATALHOS_LIMPEZA;
+  if (perfil === 'RECEPCAO') return ATALHOS_RECEPCAO;
+  if (perfil === 'COZINHA') return ATALHOS_COZINHA;
   if (perfil === 'GESTOR') return ATALHOS_GESTOR;
   if (perfil === 'GARCOM') return ATALHOS_GARCOM;
   return [];
 }
 
 function prefixoDoPerfil(perfil: Perfil | undefined): string {
-  return perfil === 'GARCOM' ? '/garcom' : '/gestor';
+  return perfil ? RAIZ_DO_PERFIL[perfil] : '/gestor';
 }
 
 // ---------- Formatação ----------
@@ -155,6 +179,8 @@ export function Painel() {
   const atalhos = atalhosDoPerfil(usuario?.perfil);
   // O gráfico de vendas é só do gestor; sem ele, a linha fica com duas colunas.
   const gestor = usuario?.perfil === 'GESTOR';
+  // Limpeza e recepção não veem pedidos: o painel delas fica só com o destaque e os atalhos.
+  const semPedidos = usuario?.perfil === 'LIMPEZA' || usuario?.perfil === 'RECEPCAO';
 
   const pontos = dados ? dados.desempenho.slice(-periodo) : [];
   const temVenda = pontos.some((p) => p.valor !== null);
@@ -206,7 +232,11 @@ export function Painel() {
         </div>
       )}
 
-      <div className={gestor ? 'painel-linha' : 'painel-linha painel-linha-dupla'}>
+      <div
+        className={
+          gestor ? 'painel-linha' : semPedidos ? 'painel-linha painel-linha-unica' : 'painel-linha painel-linha-dupla'
+        }
+      >
         {gestor && (
           <section className="painel-cartao painel-desempenho">
             <header className="painel-cartao-cabecalho">
@@ -238,36 +268,38 @@ export function Painel() {
           </section>
         )}
 
-        <section className="painel-cartao painel-avisos">
-          <header className="painel-cartao-cabecalho">
-            <Icone nome="pedidos" tamanho={20} className="painel-cartao-icone" />
-            <h2 className="painel-cartao-titulo">Pedidos Recentes</h2>
-            <Link className="painel-ver-todos" to={`${prefixo}/pedidos`}>
-              Ver todos
-              <Icone nome="seta-direita" tamanho={14} />
-            </Link>
-          </header>
-          {resumo.carregando && !dados && <Carregando />}
-          {dados && avisos.length === 0 && <p className="painel-vazio">Nenhum pedido por enquanto.</p>}
-          {avisos.length > 0 && (
-            <ul className="painel-avisos-lista">
-              {avisos.map((c, i) => (
-                <li key={c.id} className="painel-aviso">
-                  <span className={`painel-aviso-marca painel-cor-${CORES_AVISOS[i % 3]}`}>
-                    <span className="painel-aviso-bolinha" />
-                  </span>
-                  <div className="painel-aviso-texto">
-                    <span className="painel-aviso-titulo">{c.titulo}</span>
-                    <span className="painel-aviso-corpo">
-                      {c.valor} · {c.corpo}
+        {!semPedidos && (
+          <section className="painel-cartao painel-avisos">
+            <header className="painel-cartao-cabecalho">
+              <Icone nome="pedidos" tamanho={20} className="painel-cartao-icone" />
+              <h2 className="painel-cartao-titulo">Pedidos Recentes</h2>
+              <Link className="painel-ver-todos" to={`${prefixo}/pedidos`}>
+                Ver todos
+                <Icone nome="seta-direita" tamanho={14} />
+              </Link>
+            </header>
+            {resumo.carregando && !dados && <Carregando />}
+            {dados && avisos.length === 0 && <p className="painel-vazio">Nenhum pedido por enquanto.</p>}
+            {avisos.length > 0 && (
+              <ul className="painel-avisos-lista">
+                {avisos.map((c, i) => (
+                  <li key={c.id} className="painel-aviso">
+                    <span className={`painel-aviso-marca painel-cor-${CORES_AVISOS[i % 3]}`}>
+                      <span className="painel-aviso-bolinha" />
                     </span>
-                  </div>
-                  <span className="painel-aviso-tempo">{tempoRelativo(c.criadoEm, agora)}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+                    <div className="painel-aviso-texto">
+                      <span className="painel-aviso-titulo">{c.titulo}</span>
+                      <span className="painel-aviso-corpo">
+                        {c.valor} · {c.corpo}
+                      </span>
+                    </div>
+                    <span className="painel-aviso-tempo">{tempoRelativo(c.criadoEm, agora)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         <div className="painel-coluna">
           {dados?.destaque && (

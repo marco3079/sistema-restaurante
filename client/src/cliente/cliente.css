@@ -757,7 +757,6 @@
   margin: 0 -1rem;
   padding: 0.25rem 1rem 0.75rem;
   overflow-x: auto;
-  scroll-snap-type: x proximity;
   scrollbar-width: none;
 }
 
@@ -779,7 +778,6 @@
   color: var(--cor-texto);
   font: inherit;
   text-align: left;
-  scroll-snap-align: start;
   cursor: pointer;
 }
 
@@ -815,5 +813,92 @@
   padding: 0 0.2rem;
   font-size: 0.9rem;
   font-weight: 800;
+  color: var(--cor-primaria);
+}
+
+/* ---------- Faixa que rola para os lados ---------- */
+
+.mesa-cli-faixa {
+  position: relative;
+}
+
+.mesa-cli-recomendados-lista {
+  /* O encaixe da rolagem respeita a margem interna: a faixa começa parada no primeiro item. */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  /* No celular, o dedo rola a faixa para os lados e a página para cima e para baixo. */
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* A foto não é "arrastável": o arrasto é da faixa. */
+.mesa-cli-recomendados-lista img {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.mesa-cli-faixa-arrastando,
+.mesa-cli-faixa-arrastando .mesa-cli-recomendado {
+  cursor: grabbing;
+}
+
+.mesa-cli-recomendados-lista:active {
+  cursor: grabbing;
+}
+
+/* Esmaecido na borda de onde ainda há itens. */
+.mesa-cli-faixa-mais-depois {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent);
+}
+
+.mesa-cli-faixa-mais-antes {
+  -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 56px), transparent);
+}
+
+.mesa-cli-faixa-mais-antes.mesa-cli-faixa-mais-depois {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 56px, #000 calc(100% - 56px), transparent);
+}
+
+.mesa-cli-faixa-seta {
+  position: absolute;
+  top: calc(50% - 34px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 50%;
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra);
+  color: var(--cor-primaria);
+  cursor: pointer;
+}
+
+.mesa-cli-faixa-seta:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.mesa-cli-faixa-seta-antes {
+  left: -0.5rem;
+}
+
+.mesa-cli-faixa-seta-depois {
+  right: -0.5rem;
+}
+
+.mesa-cli-faixa-dica {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  margin: -0.35rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: var(--cor-primaria);
 }

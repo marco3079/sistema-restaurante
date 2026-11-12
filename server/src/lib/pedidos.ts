@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { OrigemPedido, Prisma, StatusPedido } from '@prisma/client';
 import { prisma } from './prisma';
 import { HttpError } from './erros';
+import { ocuparMesa } from './mesas';
 
 // Regras comuns aos pedidos feitos pela equipe e pelo cardápio da mesa.
 
@@ -111,6 +112,8 @@ export async function criarPedido(entrada: {
     },
     include: incluirPedido,
   });
+  // Mesa com pedido é mesa ocupada.
+  await ocuparMesa(entrada.mesaId);
   return paraPedidoDTO(pedido);
 }
 

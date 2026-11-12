@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
+import { permitir } from '../../lib/auth';
 import {
   criarPedido,
   incluirPedido,
@@ -12,9 +13,15 @@ import {
   STATUS_EM_ANDAMENTO,
 } from '../../lib/pedidos';
 
-// Pedidos vistos pela equipe (gestor e garçom): fila, lançamento e mudança de situação.
+// Pedidos vistos pela equipe: fila, lançamento e mudança de situação.
+// Quem muda o quê:
+//   cozinha: inicia o preparo (NOVO -> EM_PREPARO) e marca como pronto (-> PRONTO);
+//   garçom: entrega o que está pronto (PRONTO -> ENTREGUE) e cancela;
+//   gestor: tudo.
 
 const router = Router();
+// A limpeza não vê nem mexe em pedidos.
+const equipeDosPedidos = permitir('GESTOR', 'GARCOM', 'COZINHA');
 
 const statusSchema = z.enum(['NOVO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE', 'CANCELADO']);
 
@@ -27,6 +34,7 @@ const filtroSchema = z.object({
 
 router.get(
   '/pedidos',
+  equipeDosPedidos,
   asyncHandler(async (req, res) => {
     const filtro = validar(filtroSchema, req.query);
     const ver = filtro.ver ?? 'andamento';
@@ -55,6 +63,7 @@ const criarSchema = z.object({
 
 router.post(
   '/pedidos',
+  permitir('GESTOR', 'GARCOM'),
   asyncHandler(async (req, res) => {
     const dados = validar(criarSchema, req.body);
     const mesa = await prisma.mesa.findUnique({ where: { id: dados.mesaId } });
@@ -75,12 +84,13 @@ router.post(
 
 router.put(
   '/pedidos/:id/status',
+  equipeDosPedidos,
   asyncHandler(async (req, res) => {
     const id = idParam(req);
     const { status } = validar(z.object({ status: statusSchema }), req.body);
     const atual = await prisma.pedido.findUnique({
       where: { id },
-      select: { id: true, pagoEm: true, garcomId: true },
+      select: { id: true, pagoEm: true, garcomId: true, status: true },
     });
     if (!atual) {
       throw new HttpError(404, 'Pedido não encontrado');
@@ -88,12 +98,32 @@ router.put(
     if (atual.pagoEm) {
       throw new HttpError(400, 'Este pedido já foi pago e não pode mais mudar.');
     }
+    const perfil = req.usuario.perfil;
+    if (perfil === 'COZINHA') {
+      const preparo = status === 'EM_PREPARO' && atual.status === 'NOVO';
+      const pronto = status === 'PRONTO' && (atual.status === 'NOVO' || atual.status === 'EM_PREPARO');
+      if (!preparo && !pronto) {
+        throw new HttpError(403, 'A cozinha inicia o preparo e marca o pedido como pronto. O garçom entrega.');
+      }
+    }
+    if (perfil === 'GARCOM') {
+      const entrega = status === 'ENTREGUE' && atual.status === 'PRONTO';
+      const cancelamento = status === 'CANCELADO' && atual.status !== 'ENTREGUE';
+      if (!entrega && !cancelamento) {
+        throw new HttpError(
+          403,
+          status === 'ENTREGUE'
+            ? 'Só dá para entregar o pedido depois que a cozinha marcar como pronto.'
+            : 'Quem inicia o preparo e marca como pronto é a cozinha.'
+        );
+      }
+    }
     const pedido = await prisma.pedido.update({
       where: { id },
       data: {
         status,
-        // Quem mexe primeiro em um pedido do cliente passa a ser o responsável por ele.
-        garcomId: atual.garcomId ?? req.usuario.id,
+        // O primeiro garçom (ou gestor) que mexe em um pedido do cliente passa a responder por ele.
+        garcomId: atual.garcomId ?? (perfil === 'COZINHA' ? null : req.usuario.id),
       },
       include: incluirPedido,
     });

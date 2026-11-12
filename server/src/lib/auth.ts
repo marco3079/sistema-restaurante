@@ -56,7 +56,7 @@ export const autenticar: RequestHandler = (req: Request, res: Response, next: Ne
   try {
     const payload = jwt.verify(token, segredo()) as jwt.JwtPayload;
     const perfil = payload.perfil as Perfil;
-    if (perfil !== 'GESTOR' && perfil !== 'GARCOM') {
+    if (!['GESTOR', 'GARCOM', 'COZINHA', 'LIMPEZA', 'RECEPCAO'].includes(perfil)) {
       res.status(401).json({ erro: 'Não autenticado' });
       return;
     }

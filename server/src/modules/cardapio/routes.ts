@@ -214,6 +214,7 @@ router.put(
 // Marca o produto como disponível ou esgotado. O garçom também pode.
 router.put(
   '/produtos/:id/disponivel',
+  permitir('GESTOR', 'GARCOM', 'COZINHA'),
   asyncHandler(async (req, res) => {
     const id = idParam(req);
     const { disponivel } = validar(z.object({ disponivel: z.boolean() }), req.body);

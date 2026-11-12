@@ -1,0 +1,291 @@
+/* Salão: planta do restaurante com as áreas e as mesas. Usa as variáveis de ui/estilo.css. */
+
+.salao-moldura {
+  padding: 0.75rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra);
+}
+
+.salao-quadro {
+  position: relative;
+  width: 100%;
+  max-height: 78vh;
+  margin: 0 auto;
+  overflow: hidden;
+  border-radius: var(--raio-pequeno);
+  background-color: #ffffff;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+/* Sem planta: quadro quadriculado, para dar referência ao posicionar. */
+.salao-sem-planta {
+  background-color: var(--cor-superficie-2);
+  background-image:
+    linear-gradient(var(--cor-borda) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cor-borda) 1px, transparent 1px);
+  background-size: 5% 8%;
+}
+
+.salao-modo-areas {
+  cursor: crosshair;
+}
+
+.salao-vazio {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--cor-texto-suave);
+  pointer-events: none;
+}
+
+/* ---------- Áreas ---------- */
+
+.salao-area {
+  position: absolute;
+  border: 2px solid var(--cor-primaria);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.salao-area-escolhida {
+  border-width: 3px;
+  border-style: dashed;
+}
+
+.salao-area-rascunho {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--cor-primaria) 18%, transparent);
+}
+
+.salao-area-nome {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 100%;
+  padding: 0.15rem 0.55rem;
+  overflow: hidden;
+  border-radius: 7px 0 8px 0;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- Mesas ---------- */
+
+.salao-mesa {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: clamp(30px, 5.2%, 52px);
+  aspect-ratio: 1;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.35);
+  color: #ffffff;
+  font: inherit;
+  font-size: clamp(0.72rem, 1.4vw, 1rem);
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.salao-modo-mesas .salao-mesa {
+  cursor: grab;
+}
+
+.salao-modo-mesas .salao-mesa:active {
+  cursor: grabbing;
+}
+
+.salao-mesa-livre {
+  background: #059669;
+}
+
+.salao-mesa-ocupada {
+  background: #1d4ed8;
+}
+
+.salao-mesa-limpeza {
+  background: #b45309;
+}
+
+.salao-mesa-chamando {
+  background: #dc2626;
+  animation: salao-chamando 1.2s ease-in-out infinite;
+}
+
+@keyframes salao-chamando {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .salao-mesa-chamando {
+    animation: none;
+  }
+}
+
+.salao-mesa-escolhida,
+.salao-mesa:focus-visible {
+  outline: 3px solid var(--cor-texto);
+  outline-offset: 2px;
+}
+
+/* Bolinha com a cor da área da mesa. */
+.salao-mesa-area {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 34%;
+  aspect-ratio: 1;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+}
+
+.salao-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.86rem;
+  color: var(--cor-texto-suave);
+}
+
+.salao-legenda li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.salao-legenda-cor {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  animation: none;
+}
+
+/* ---------- Detalhe, bandeja e lista de áreas ---------- */
+
+.salao-detalhe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1.1rem;
+  color: var(--cor-texto);
+}
+
+.salao-bandeja {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.salao-ficha {
+  min-height: 40px;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.salao-ficha[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+}
+
+.salao-ficha:focus-visible,
+.salao-cor:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.salao-areas {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.salao-area-linha {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--cor-borda);
+  border-radius: 8px;
+}
+
+.salao-area-linha:last-child {
+  border-bottom: 0;
+}
+
+.salao-area-linha-ativa {
+  background: var(--cor-primaria-suave);
+}
+
+.salao-area-ponto {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+}
+
+.salao-area-texto {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--cor-texto);
+}
+
+.salao-area-texto span {
+  font-size: 0.86rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.salao-cores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.6rem;
+}
+
+.salao-cor {
+  width: 36px;
+  height: 36px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.salao-cor-ativa {
+  border-color: var(--cor-texto);
+}

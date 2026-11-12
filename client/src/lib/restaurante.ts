@@ -82,11 +82,39 @@ export interface MesaDTO {
   codigo: string;
   ativa: boolean;
   chamandoDesde: string | null;
-  situacao: 'LIVRE' | 'OCUPADA';
+  situacao: 'LIVRE' | 'OCUPADA' | 'LIMPEZA';
+  estadoDesde: string;
   totalAberto: number;
   pedidosAbertos: number;
   pedidosPendentes: number;
   abertaDesde: string | null;
+  area: { id: number; nome: string; cor: string } | null;
+  // Centro da mesa na planta, de 0 a 1. null = fora da planta.
+  posX: number | null;
+  posY: number | null;
+  // Garçons que respondem pela mesa: os da área ou, sem área, o do pedido em aberto.
+  responsaveis: { id: number; nome: string }[];
+  origemResponsaveis: 'AREA' | 'PEDIDO' | null;
+}
+
+export interface AreaDTO {
+  id: number;
+  nome: string;
+  cor: string;
+  // Retângulo da área na planta, em frações de 0 a 1. null = sem desenho.
+  x: number | null;
+  y: number | null;
+  largura: number | null;
+  altura: number | null;
+  garcons: { id: number; nome: string; ativo: boolean }[];
+  mesas: number;
+}
+
+export interface PlantaDTO {
+  imagem: string;
+  largura: number;
+  altura: number;
+  atualizadaEm: string;
 }
 
 export interface ItemPedidoDTO {
@@ -118,6 +146,7 @@ export interface ContaDTO {
   mesa: { id: number; numero: number; nome: string | null };
   pedidos: PedidoDTO[];
   total: number;
+  pagamentoPendente: PagamentoDTO | null;
 }
 
 export const STATUS_PEDIDO: Record<
@@ -181,4 +210,89 @@ export function lerNumero(texto: string): number | null | undefined {
 
 export function precoParaCampo(valor: number): string {
   return valor.toFixed(2).replace('.', ',');
+}
+
+// ---------- Maquinetas, pagamentos e desempenho ----------
+
+export type OperadoraMaquineta = 'SIMULADA' | 'MERCADO_PAGO' | 'STONE' | 'PAGBANK' | 'CIELO' | 'OUTRA';
+export type IntegracaoMaquineta = 'MANUAL' | 'AUTOMATICA';
+export type VinculoMaquineta = 'POR_GARCOM' | 'COMPARTILHADA';
+
+export const OPERADORAS: { valor: OperadoraMaquineta; rotulo: string; automatica: boolean }[] = [
+  { valor: 'MERCADO_PAGO', rotulo: 'Mercado Pago Point', automatica: true },
+  { valor: 'STONE', rotulo: 'Stone', automatica: false },
+  { valor: 'PAGBANK', rotulo: 'PagBank', automatica: false },
+  { valor: 'CIELO', rotulo: 'Cielo', automatica: false },
+  { valor: 'OUTRA', rotulo: 'Outra operadora', automatica: false },
+  { valor: 'SIMULADA', rotulo: 'Simulada (para testar)', automatica: true },
+];
+
+export function rotuloOperadora(valor: string): string {
+  return OPERADORAS.find((o) => o.valor === valor)?.rotulo ?? valor;
+}
+
+export interface MaquinetaDTO {
+  id: number;
+  nome: string;
+  operadora: OperadoraMaquineta;
+  integracao: IntegracaoMaquineta;
+  identificador: string | null;
+  garcomId: number | null;
+  garcom: { id: number; nome: string } | null;
+  ativa: boolean;
+}
+
+export interface MaquinetasDTO {
+  vinculo: VinculoMaquineta;
+  mercadoPagoTokenDefinido?: boolean;
+  maquinetas: MaquinetaDTO[];
+}
+
+export interface PagamentoDTO {
+  id: number;
+  mesa: { id: number; numero: number; nome: string | null };
+  valor: number;
+  formaPagamento: string;
+  status: 'PENDENTE' | 'APROVADO' | 'RECUSADO' | 'CANCELADO';
+  maquineta: { id: number; nome: string; operadora: OperadoraMaquineta; integracao: IntegracaoMaquineta } | null;
+  garcom: { id: number; nome: string };
+  codigoAutorizacao: string | null;
+  mensagem: string | null;
+  criadoEm: string;
+  concluidoEm: string | null;
+}
+
+export interface DesempenhoDTO {
+  dias: number;
+  desde: string;
+  totais: { contasRecebidas: number; valorRecebido: number; pedidosAtendidos: number };
+  garcons: {
+    usuario: { id: number; nome: string; perfil: string; ativo: boolean; foto: string | null };
+    pedidosAtendidos: number;
+    vendasNosPedidos: number;
+    contasRecebidas: number;
+    valorRecebido: number;
+    recebidoNaMaquineta: number;
+    valorMedioPorConta: number;
+    porForma: Record<string, number>;
+  }[];
+}
+
+export interface ChamadoDTO {
+  mesaId: number;
+  numero: number;
+  nome: string | null;
+  area: string | null;
+  desde: string;
+}
+
+// Mesa como a limpeza e a recepção veem: sem pedidos nem valores.
+export interface MesaSimplesDTO {
+  id: number;
+  numero: number;
+  nome: string | null;
+  lugares: number;
+  area: { nome: string; cor: string } | null;
+  situacao?: 'LIVRE' | 'OCUPADA' | 'LIMPEZA';
+  desde: string;
 }

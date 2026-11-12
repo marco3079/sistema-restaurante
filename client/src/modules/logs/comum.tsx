@@ -65,6 +65,9 @@ const ROTULO_TIPO: Record<string, { rotulo: string; cor: CorSelo }> = {
 const ROTULO_PERFIL: Record<string, { rotulo: string; cor: CorSelo }> = {
   GESTOR: { rotulo: 'Gestor', cor: 'azul' },
   GARCOM: { rotulo: 'Garçom', cor: 'verde' },
+  COZINHA: { rotulo: 'Cozinha', cor: 'amarelo' },
+  LIMPEZA: { rotulo: 'Limpeza', cor: 'cinza' },
+  RECEPCAO: { rotulo: 'Recepção', cor: 'cinza' },
 };
 
 export const TIPOS_LOG: { valor: string; rotulo: string }[] = Object.keys(ROTULO_TIPO).map((t) => ({

@@ -33,11 +33,12 @@ function SeloTipoLog({ tipo }: { tipo: string }) {
   return <Selo cor={info?.cor ?? 'cinza'}>{info?.rotulo ?? tipo}</Selo>;
 }
 
-// Selo do perfil: gestor azul, garçom verde.
+// Selo do perfil: gestor azul, garçom verde, cozinha amarelo.
 export function SeloPerfilUsuario({ perfil }: { perfil: string }) {
   const rotulo = rotuloPerfil(perfil);
   if (perfil === 'GESTOR') return <Selo cor="azul">{rotulo}</Selo>;
   if (perfil === 'GARCOM') return <Selo cor="verde">{rotulo}</Selo>;
+  if (perfil === 'COZINHA') return <Selo cor="amarelo">{rotulo}</Selo>;
   return <Selo cor="cinza">{rotulo}</Selo>;
 }
 

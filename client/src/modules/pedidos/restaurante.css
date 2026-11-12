@@ -592,3 +592,139 @@
   vertical-align: -2px;
   color: var(--cor-laranja);
 }
+
+/* ---------- Cobrança na maquineta ---------- */
+
+.cobranca {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cobranca-titulo {
+  margin: 0;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.cobranca-espera {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-texto);
+  font-weight: 600;
+}
+
+.cobranca-pulso {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--cor-primaria);
+  animation: cobranca-pulso 1.1s ease-in-out infinite;
+}
+
+@keyframes cobranca-pulso {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(0.7);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cobranca-pulso {
+    animation: none;
+  }
+}
+
+.cobranca-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------- Maquinetas (gestor) ---------- */
+
+.maquinetas-texto {
+  margin: 0 0 0.75rem;
+  color: var(--cor-texto-suave);
+  line-height: 1.5;
+}
+
+.maquinetas-vinculos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.maquinetas-vinculo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.maquinetas-vinculo span {
+  font-size: 0.88rem;
+  color: var(--cor-texto-suave);
+}
+
+.maquinetas-vinculo:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.maquinetas-vinculo-ativo {
+  border-color: var(--cor-primaria);
+  background: var(--cor-primaria-suave);
+}
+
+.pedido-espera {
+  align-self: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+/* Mesa esperando limpeza. */
+.mesa-limpeza {
+  border-style: dashed;
+  border-color: var(--cor-laranja);
+}
+
+.mesa-limpeza .mesa-numero {
+  background: var(--cor-laranja-suave);
+  color: var(--cor-aviso);
+}
+
+/* ---------- Recepção ---------- */
+
+.recepcao-grupo + .recepcao-grupo {
+  margin-top: 0.5rem;
+}
+
+.recepcao-titulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+}

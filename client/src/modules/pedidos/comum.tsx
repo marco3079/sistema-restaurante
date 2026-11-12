@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { api } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import {
   STATUS_PEDIDO,
@@ -89,9 +90,29 @@ export function CartaoPedido({
   aoMudar: () => void;
   aoErro: (mensagem: string) => void;
 }) {
+  const { usuario } = useAuth();
+  const perfil = usuario?.perfil;
   const [ocupado, setOcupado] = useState(false);
-  const proximo = PROXIMO[pedido.status];
-  const podeCancelar = pedido.pagoEm === null && pedido.status !== 'CANCELADO' && pedido.status !== 'ENTREGUE';
+  // Cozinha: inicia o preparo e marca como pronto. Garçom: entrega. Gestor: tudo.
+  const passo = PROXIMO[pedido.status];
+  const proximo =
+    !passo || perfil === 'GESTOR'
+      ? passo
+      : perfil === 'COZINHA'
+        ? passo.status !== 'ENTREGUE'
+          ? passo
+          : undefined
+        : passo.status === 'ENTREGUE'
+          ? passo
+          : undefined;
+  const podeCancelar =
+    perfil !== 'COZINHA' && pedido.pagoEm === null && pedido.status !== 'CANCELADO' && pedido.status !== 'ENTREGUE';
+  const espera =
+    proximo || pedido.status === 'ENTREGUE' || pedido.status === 'CANCELADO'
+      ? null
+      : perfil === 'COZINHA'
+        ? 'Aguardando o garçom entregar'
+        : 'Aguardando a cozinha';
 
   async function mudar(status: StatusPedido) {
     if (status === 'CANCELADO' && !window.confirm(`Cancelar o pedido #${pedido.id} da ${nomeDaMesa(pedido.mesa)}?`)) {
@@ -140,6 +161,7 @@ export function CartaoPedido({
               {proximo.rotulo}
             </Botao>
           )}
+          {espera && <span className="pedido-espera">{espera}</span>}
         </div>
       </div>
     </article>

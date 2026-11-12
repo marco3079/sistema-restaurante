@@ -65,7 +65,10 @@ function nomeDaMesa(mesa: { numero: number; nome: string | null }): string {
 }
 
 function prefixo(perfil: string): string {
-  return perfil === 'GESTOR' ? '/gestor' : '/garcom';
+  if (perfil === 'GESTOR') return '/gestor';
+  if (perfil === 'LIMPEZA') return '/limpeza';
+  if (perfil === 'RECEPCAO') return '/recepcao';
+  return perfil === 'COZINHA' ? '/cozinha' : '/garcom';
 }
 
 // Soma e quantidade dos pedidos não cancelados criados no intervalo.
@@ -80,7 +83,7 @@ async function vendas(de: Date, ate: Date): Promise<{ total: number; pedidos: nu
 
 async function ocupacao(): Promise<{ ocupadas: number; total: number; chamando: number }> {
   const [mesas, abertas] = await Promise.all([
-    prisma.mesa.findMany({ where: { ativa: true }, select: { id: true, chamandoDesde: true } }),
+    prisma.mesa.findMany({ where: { ativa: true }, select: { id: true, chamandoDesde: true, estado: true } }),
     prisma.pedido.findMany({
       where: { pagoEm: null, status: { not: 'CANCELADO' } },
       select: { mesaId: true },
@@ -89,7 +92,7 @@ async function ocupacao(): Promise<{ ocupadas: number; total: number; chamando: 
   ]);
   const ocupadas = new Set(abertas.map((p) => p.mesaId));
   return {
-    ocupadas: mesas.filter((m) => ocupadas.has(m.id)).length,
+    ocupadas: mesas.filter((m) => ocupadas.has(m.id) || m.estado === 'OCUPADA').length,
     total: mesas.length,
     chamando: mesas.filter((m) => m.chamandoDesde !== null).length,
   };
@@ -181,6 +184,173 @@ async function cartoesGarcom(): Promise<Cartao[]> {
       variacao: null,
     },
   ];
+}
+
+// Situação das mesas ativas para quem acomoda os clientes: conta aberta também é mesa ocupada.
+async function mesasParaRecepcao() {
+  const [mesas, abertas] = await Promise.all([
+    prisma.mesa.findMany({
+      where: { ativa: true },
+      select: { id: true, numero: true, nome: true, lugares: true, estado: true },
+      orderBy: { numero: 'asc' },
+    }),
+    prisma.pedido.findMany({
+      where: { pagoEm: null, status: { not: 'CANCELADO' } },
+      select: { mesaId: true },
+      distinct: ['mesaId'],
+    }),
+  ]);
+  const comConta = new Set(abertas.map((p) => p.mesaId));
+  return mesas.map((m) => ({ ...m, estado: comConta.has(m.id) ? ('OCUPADA' as const) : m.estado }));
+}
+
+async function cartoesRecepcao(): Promise<Cartao[]> {
+  const mesas = await mesasParaRecepcao();
+  const livres = mesas.filter((m) => m.estado === 'LIVRE');
+  return [
+    { chave: 'livres', rotulo: 'Mesas livres', valor: String(livres.length), icone: 'mesas', cor: 'verde', variacao: null },
+    {
+      chave: 'lugares',
+      rotulo: 'Lugares livres',
+      valor: String(livres.reduce((soma, m) => soma + m.lugares, 0)),
+      icone: 'grafico',
+      cor: 'azul',
+      variacao: null,
+    },
+    {
+      chave: 'limpeza',
+      rotulo: 'Mesas em limpeza',
+      valor: String(mesas.filter((m) => m.estado === 'LIMPEZA').length),
+      icone: 'relogio',
+      cor: 'laranja',
+      variacao: null,
+    },
+    {
+      chave: 'ocupadas',
+      rotulo: 'Mesas ocupadas',
+      valor: `${mesas.filter((m) => m.estado === 'OCUPADA').length}/${mesas.length}`,
+      icone: 'pedidos',
+      cor: 'roxo',
+      variacao: null,
+    },
+  ];
+}
+
+async function destaqueRecepcao(): Promise<Destaque | null> {
+  const livres = (await mesasParaRecepcao()).filter((m) => m.estado === 'LIVRE');
+  if (livres.length === 0) return null;
+  const maior = livres.reduce((a, b) => (b.lugares > a.lugares ? b : a));
+  return {
+    etiqueta: 'Maior mesa livre',
+    titulo: nomeDaMesa(maior),
+    subtitulo: `${maior.lugares} lugares`,
+    caminho: '/recepcao/mesas',
+  };
+}
+
+async function cartoesLimpeza(): Promise<Cartao[]> {
+  const mesas = await prisma.mesa.findMany({ where: { ativa: true }, select: { estado: true, estadoDesde: true } });
+  const paraLimpar = mesas.filter((m) => m.estado === 'LIMPEZA');
+  const maisAntiga = paraLimpar.reduce<Date | null>(
+    (menor, m) => (menor === null || m.estadoDesde < menor ? m.estadoDesde : menor),
+    null
+  );
+  const minutos = maisAntiga ? Math.max(0, Math.floor((Date.now() - maisAntiga.getTime()) / 60000)) : 0;
+  return [
+    {
+      chave: 'limpar',
+      rotulo: 'Mesas para limpar',
+      valor: String(paraLimpar.length),
+      icone: 'mesas',
+      cor: 'laranja',
+      variacao: null,
+    },
+    {
+      chave: 'espera',
+      rotulo: 'Maior espera pela limpeza',
+      valor: paraLimpar.length > 0 ? `${minutos} min` : '—',
+      icone: 'relogio',
+      cor: 'azul',
+      variacao: null,
+    },
+    {
+      chave: 'ocupadas',
+      rotulo: 'Mesas ocupadas agora',
+      valor: String(mesas.filter((m) => m.estado === 'OCUPADA').length),
+      icone: 'pedidos',
+      cor: 'roxo',
+      variacao: null,
+    },
+    {
+      chave: 'livres',
+      rotulo: 'Mesas livres e limpas',
+      valor: String(mesas.filter((m) => m.estado === 'LIVRE').length),
+      icone: 'sino',
+      cor: 'verde',
+      variacao: null,
+    },
+  ];
+}
+
+async function destaqueLimpeza(): Promise<Destaque | null> {
+  const mesa = await prisma.mesa.findFirst({
+    where: { estado: 'LIMPEZA', ativa: true },
+    orderBy: { estadoDesde: 'asc' },
+    select: { numero: true, nome: true, estadoDesde: true },
+  });
+  if (!mesa) return null;
+  const minutos = Math.max(0, Math.floor((Date.now() - mesa.estadoDesde.getTime()) / 60000));
+  return {
+    etiqueta: 'Limpar primeiro',
+    titulo: nomeDaMesa(mesa),
+    subtitulo: minutos < 1 ? 'Ficou vaga agora' : `Vaga há ${minutos} min`,
+    caminho: '/limpeza/mesas',
+  };
+}
+
+async function cartoesCozinha(): Promise<Cartao[]> {
+  const [novos, preparo, prontos, esgotados] = await Promise.all([
+    prisma.pedido.count({ where: { status: 'NOVO' } }),
+    prisma.pedido.count({ where: { status: 'EM_PREPARO' } }),
+    prisma.pedido.count({ where: { status: 'PRONTO' } }),
+    prisma.produto.count({ where: { ativo: true, disponivel: false } }),
+  ]);
+  return [
+    { chave: 'novos', rotulo: 'Pedidos novos', valor: String(novos), icone: 'pedidos', cor: 'azul', variacao: null },
+    { chave: 'preparo', rotulo: 'Em preparo', valor: String(preparo), icone: 'relogio', cor: 'laranja', variacao: null },
+    {
+      chave: 'prontos',
+      rotulo: 'Prontos esperando o garçom',
+      valor: String(prontos),
+      icone: 'sino',
+      cor: 'verde',
+      variacao: null,
+    },
+    {
+      chave: 'esgotados',
+      rotulo: 'Itens esgotados',
+      valor: String(esgotados),
+      icone: 'cardapio',
+      cor: 'roxo',
+      variacao: null,
+    },
+  ];
+}
+
+async function destaqueCozinha(): Promise<Destaque | null> {
+  const proximo = await prisma.pedido.findFirst({
+    where: { status: { in: ['NOVO', 'EM_PREPARO'] } },
+    orderBy: { criadoEm: 'asc' },
+    select: { id: true, mesa: { select: { numero: true, nome: true } }, itens: { select: { quantidade: true } } },
+  });
+  if (!proximo) return null;
+  const itens = proximo.itens.reduce((soma, i) => soma + i.quantidade, 0);
+  return {
+    etiqueta: 'Há mais tempo na fila',
+    titulo: nomeDaMesa(proximo.mesa),
+    subtitulo: `Pedido #${proximo.id} · ${itens} ${itens === 1 ? 'item' : 'itens'}`,
+    caminho: '/cozinha/pedidos',
+  };
 }
 
 // Vendas por mês nos últimos 12 meses (pedidos não cancelados, pelo dia em que foram feitos).
@@ -277,12 +447,16 @@ router.get(
     }
     const primeiroNome = usuario.nome.trim().split(/\s+/)[0] ?? '';
     const gestor = u.perfil === 'GESTOR';
+    const cozinha = u.perfil === 'COZINHA';
+    const limpeza = u.perfil === 'LIMPEZA';
+    const recepcao = u.perfil === 'RECEPCAO';
     const [cartoes, desempenho, destaque, recentes] = await Promise.all([
-      gestor ? cartoesGestor() : cartoesGarcom(),
+      gestor ? cartoesGestor() : cozinha ? cartoesCozinha() : limpeza ? cartoesLimpeza() : recepcao ? cartoesRecepcao() : cartoesGarcom(),
       // As vendas do restaurante são assunto do gestor: o garçom não recebe o gráfico.
       gestor ? vendasPorMes() : Promise.resolve([]),
-      gestor ? destaqueGestor() : destaqueGarcom(),
-      pedidosRecentes(),
+      gestor ? destaqueGestor() : cozinha ? destaqueCozinha() : limpeza ? destaqueLimpeza() : recepcao ? destaqueRecepcao() : destaqueGarcom(),
+      // A limpeza e a recepção não veem pedidos nem valores.
+      limpeza || recepcao ? Promise.resolve([]) : pedidosRecentes(),
     ]);
     res.json({ primeiroNome, cartoes, desempenho, destaque, recentes });
   })
@@ -293,13 +467,37 @@ router.get(
   '/notificacoes',
   asyncHandler(async (req, res) => {
     const raiz = prefixo(req.usuario.perfil);
+    const perfil = req.usuario.perfil;
+    if (perfil === 'RECEPCAO') {
+      res.json([]);
+      return;
+    }
+    if (perfil === 'LIMPEZA') {
+      const paraLimpar = await prisma.mesa.findMany({
+        where: { estado: 'LIMPEZA', ativa: true },
+        orderBy: { estadoDesde: 'asc' },
+      });
+      res.json(
+        paraLimpar.map((m) => ({
+          chave: `limpar-${m.id}-${m.estadoDesde.getTime()}`,
+          titulo: `${nomeDaMesa(m)} para limpar`,
+          meta: 'Mesa vaga',
+          quando: m.estadoDesde.toISOString(),
+          caminho: '/limpeza/mesas',
+        }))
+      );
+      return;
+    }
+    // Cozinha: pedidos novos. Garçom: mesas chamando e pedidos prontos. Gestor: tudo.
+    const situacoes: ('NOVO' | 'PRONTO')[] =
+      perfil === 'COZINHA' ? ['NOVO'] : perfil === 'GARCOM' ? ['PRONTO'] : ['NOVO', 'PRONTO'];
     const [chamando, pedidos] = await Promise.all([
       prisma.mesa.findMany({
-        where: { chamandoDesde: { not: null }, ativa: true },
+        where: { chamandoDesde: perfil === 'COZINHA' ? { equals: new Date(0) } : { not: null }, ativa: true },
         orderBy: { chamandoDesde: 'asc' },
       }),
       prisma.pedido.findMany({
-        where: { status: { in: ['NOVO', 'PRONTO'] } },
+        where: { status: { in: situacoes } },
         orderBy: { criadoEm: 'asc' },
         take: 30,
         select: {
@@ -346,6 +544,10 @@ router.get(
       return;
     }
     const u = req.usuario;
+    if (u.perfil === 'LIMPEZA' || u.perfil === 'RECEPCAO') {
+      res.json([]);
+      return;
+    }
     const raiz = prefixo(u.perfil);
     const texto = { contains: q, mode: 'insensitive' as const };
     const itens: ItemBusca[] = [];
@@ -368,7 +570,7 @@ router.get(
     );
 
     const numero = /^\d{1,4}$/.test(q) ? Number(q) : null;
-    const mesas = await prisma.mesa.findMany({
+    const mesas = u.perfil === 'COZINHA' ? [] : await prisma.mesa.findMany({
       where: { OR: [{ nome: texto }, ...(numero !== null ? [{ numero }] : [])] },
       select: { numero: true, nome: true, lugares: true },
       orderBy: { numero: 'asc' },
@@ -397,7 +599,7 @@ router.get(
           (p): ItemBusca => ({
             tipo: 'Usuário',
             titulo: p.nome,
-            subtitulo: p.perfil === 'GESTOR' ? 'Gestor' : 'Garçom',
+            subtitulo: p.perfil === 'GESTOR' ? 'Gestor' : p.perfil === 'COZINHA' ? 'Cozinha' : p.perfil === 'LIMPEZA' ? 'Limpeza' : p.perfil === 'RECEPCAO' ? 'Recepção' : 'Garçom',
             caminho: '/gestor/usuarios',
           })
         )

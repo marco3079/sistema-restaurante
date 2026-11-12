@@ -8,6 +8,9 @@ import type { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const SENHA_DEMO = 'garcom1234';
+const SENHA_COZINHA_DEMO = 'cozinha1234';
+const SENHA_LIMPEZA_DEMO = 'limpeza1234';
+const SENHA_RECEPCAO_DEMO = 'recepcao1234';
 
 // Cardápio da demonstração: categorias e produtos com foto (client/public/cardapio/<foto>.jpg) e ficha.
 // Os valores nutricionais são estimativas, só para a demonstração.
@@ -63,6 +66,33 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
     )
   );
 
+  await prisma.usuario.create({
+    data: {
+      nome: 'Carlos Mendes',
+      email: 'cozinha@restaurante.demo',
+      perfil: 'COZINHA',
+      senhaHash: bcrypt.hashSync(SENHA_COZINHA_DEMO, 10),
+    },
+  });
+
+  await prisma.usuario.create({
+    data: {
+      nome: 'Dona Lúcia',
+      email: 'limpeza@restaurante.demo',
+      perfil: 'LIMPEZA',
+      senhaHash: bcrypt.hashSync(SENHA_LIMPEZA_DEMO, 10),
+    },
+  });
+
+  await prisma.usuario.create({
+    data: {
+      nome: 'Rafael Costa',
+      email: 'recepcao@restaurante.demo',
+      perfil: 'RECEPCAO',
+      senhaHash: bcrypt.hashSync(SENHA_RECEPCAO_DEMO, 10),
+    },
+  });
+
   const produtos: { id: number; nome: string; preco: number }[] = [];
   for (const [ordem, grupo] of CARDAPIO.entries()) {
     const categoria = await prisma.categoria.create({ data: { nome: grupo.categoria, ordem } });
@@ -87,7 +117,56 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
     }
   }
 
-  const mesas = [];
+  // Salão: planta de exemplo, duas áreas com seus garçons e as mesas já posicionadas.
+  // As posições batem com o desenho de demo-planta.jpg (frações de 0 a 1).
+  const arquivoPlanta = path.join(__dirname, 'demo-planta.jpg');
+  if (fs.existsSync(arquivoPlanta)) {
+    await prisma.planta.create({
+      data: {
+        id: 1,
+        imagem: `data:image/jpeg;base64,${fs.readFileSync(arquivoPlanta).toString('base64')}`,
+        largura: 1400,
+        altura: 875,
+      },
+    });
+  }
+  const salaoPrincipal = await prisma.area.create({
+    data: {
+      nome: 'Salão principal',
+      cor: '#2563eb',
+      x: 0.04,
+      y: 0.2,
+      largura: 0.6,
+      altura: 0.72,
+      // Dois garçons na mesma área: os dois recebem o aviso quando uma mesa dela chama.
+      garcons: { connect: garcons.map((g) => ({ id: g.id })) },
+    },
+  });
+  const varanda = await prisma.area.create({
+    data: {
+      nome: 'Varanda',
+      cor: '#10b981',
+      x: 0.69,
+      y: 0.2,
+      largura: 0.27,
+      altura: 0.72,
+      garcons: { connect: [{ id: garcons[0].id }] },
+    },
+  });
+  const POSICOES: Record<number, [number, number]> = {
+    1: [0.13, 0.36],
+    2: [0.27, 0.36],
+    3: [0.41, 0.36],
+    4: [0.55, 0.36],
+    5: [0.13, 0.72],
+    6: [0.27, 0.72],
+    7: [0.41, 0.72],
+    8: [0.55, 0.72],
+    9: [0.82, 0.36],
+    10: [0.82, 0.72],
+  };
+
+  const mesas: { id: number }[] = [];
   for (let numero = 1; numero <= 10; numero += 1) {
     mesas.push(
       await prisma.mesa.create({
@@ -96,10 +175,18 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
           nome: numero >= 9 ? 'Varanda' : null,
           lugares: numero % 3 === 0 ? 6 : 4,
           codigo: crypto.randomBytes(9).toString('base64url'),
+          areaId: numero >= 9 ? varanda.id : salaoPrincipal.id,
+          posX: POSICOES[numero][0],
+          posY: POSICOES[numero][1],
         },
       })
     );
   }
+
+  // Maquineta de teste, para experimentar a cobrança sem aparelho de verdade.
+  await prisma.maquineta.create({
+    data: { nome: 'Maquineta de teste', operadora: 'SIMULADA', integracao: 'AUTOMATICA' },
+  });
 
   function itensSorteados() {
     const quantos = inteiro(1, 4);
@@ -172,8 +259,20 @@ export async function carregarDemonstracao(prisma: PrismaClient): Promise<void> 
     });
   }
 
+  await prisma.mesa.updateMany({
+    where: { id: { in: abertos.map((a) => mesas[a.mesa].id) } },
+    data: { estado: 'OCUPADA' },
+  });
+  await prisma.mesa.update({
+    where: { id: mesas[7].id },
+    data: { estado: 'LIMPEZA', estadoDesde: new Date(agora.getTime() - 6 * 60 * 1000) },
+  });
+
   console.log('==== DADOS DE DEMONSTRAÇÃO CARREGADOS ====');
   console.log(`Garçons: ${garcons.map((g) => g.email).join(', ')} (senha ${SENHA_DEMO})`);
+  console.log(`Cozinha: cozinha@restaurante.demo (senha ${SENHA_COZINHA_DEMO})`);
+  console.log(`Limpeza: limpeza@restaurante.demo (senha ${SENHA_LIMPEZA_DEMO})`);
+  console.log(`Recepção: recepcao@restaurante.demo (senha ${SENHA_RECEPCAO_DEMO})`);
   console.log(`${produtos.length} produtos, ${mesas.length} mesas e pedidos dos últimos meses.`);
   console.log('==========================================');
 }

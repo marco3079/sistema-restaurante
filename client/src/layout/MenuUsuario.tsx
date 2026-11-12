@@ -2,14 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { useTema } from '../lib/tema';
-import type { PerfilReal } from '../lib/tipos';
+import { NOME_DO_PERFIL, RAIZ_DO_PERFIL } from '../lib/tipos';
 import { Avatar } from '../ui';
 import { Icone } from '../ui/icones';
 
-const PAPEIS: Record<PerfilReal, string> = {
-  GESTOR: 'Gestor',
-  GARCOM: 'Garçom',
-};
+const PAPEIS = NOME_DO_PERFIL;
 
 // Avatar, nome e papel do usuário logado, com menu de "Meu perfil", tema e "Sair".
 export function MenuUsuario() {
@@ -37,7 +34,7 @@ export function MenuUsuario() {
 
   if (!usuario) return null;
 
-  const caminhoPerfil = usuario.perfil === 'GESTOR' ? '/gestor/perfil' : '/garcom/perfil';
+  const caminhoPerfil = `${RAIZ_DO_PERFIL[usuario.perfil]}/perfil`;
   const primeiroNome = usuario.nome.trim().split(/\s+/)[0] ?? usuario.nome;
 
   function irParaPerfil() {
