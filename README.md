@@ -53,6 +53,7 @@ Um único app, com uma entrada para cada pessoa:
 
 - Caminho do pedido: novo, em preparo, pronto, entregue. A cozinha inicia o preparo e marca como pronto; o garçom entrega; o gestor pode tudo. Gestor e garçom cancelam.
 - Fila em três colunas, que se atualiza sozinha.
+- Novo pedido lançado pelo garçom, com a foto de cada item. Clicar na foto ou no nome abre os detalhes do prato (ingredientes, alergênicos, tabela nutricional), para tirar a dúvida do cliente na hora.
 - O sino do topo avisa cada perfil do que é dele: pedido novo para a cozinha, pedido pronto e mesa chamando para o garçom, mesa vaga para a limpeza.
 
 **Mesas e salão**
@@ -79,18 +80,19 @@ Um único app, com uma entrada para cada pessoa:
 
 **Cliente na mesa**
 
-- Cardápio por categoria, com foto e preço, e área de recomendados no topo.
+- Cardápio por categoria, com foto e preço, e área de recomendados no topo, que rola com o dedo, com o mouse ou pelas setas.
 - Perfil do prato ao tocar no item, com ingredientes e tabela nutricional.
 - Sacola, nome e observação do pedido.
 - Acompanhamento da situação de cada pedido e do total da mesa.
-- Botão para chamar o garçom.
+- Botão de chamar o garçom sempre à mão, no topo do cardápio. Ele mostra "Garçom avisado" até alguém atender.
 
 **Gestão**
 
 - Painel com vendas do dia, pedidos, mesas ocupadas, valor médio por pedido e gráfico de vendas por mês (só o gestor vê as vendas).
 - Equipe: contas de gestor, garçom, cozinha, limpeza e recepção.
 - Atividades e log do sistema (quem fez o quê).
-- Nome, logo, cores e envio de e-mails.
+- Nome, logo, cores e envio de e-mails. A logo enviada pelo gestor vira também o ícone da aba do navegador.
+- Temas claro e escuro, no computador e no celular.
 
 ## Telas
 

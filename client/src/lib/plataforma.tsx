@@ -92,12 +92,25 @@ function aplicarCores(plataforma: Plataforma): void {
   estilo.setProperty('--sombra-primaria', `0 6px 16px color-mix(in srgb, ${primaria} 30%, transparent)`);
 }
 
-function aplicarTituloEIcones(plataforma: Plataforma, logoSrc: string): void {
+// Com logo própria, ela vira o ícone da aba. Sem logo própria, valem os ícones padrão do index.html
+// (ICO, PNG e SVG), que funcionam também nos navegadores que não aceitam ícone em SVG.
+function aplicarTituloEIcones(plataforma: Plataforma): void {
   document.title = plataforma.nome;
   document
     .querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]')
     .forEach((link) => {
-      link.href = logoSrc;
+      // Guarda o ícone padrão na primeira vez, para poder voltar a ele.
+      if (link.dataset.padrao === undefined) {
+        link.dataset.padrao = link.getAttribute('href') ?? '';
+        link.dataset.tipoPadrao = link.getAttribute('type') ?? '';
+      }
+      if (plataforma.logo) {
+        link.removeAttribute('type');
+        link.href = plataforma.logo;
+      } else {
+        if (link.dataset.tipoPadrao) link.setAttribute('type', link.dataset.tipoPadrao);
+        link.href = link.dataset.padrao;
+      }
     });
 }
 
@@ -146,7 +159,7 @@ export function PlataformaProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     aplicarCores(plataforma);
-    aplicarTituloEIcones(plataforma, logoSrc);
+    aplicarTituloEIcones(plataforma);
   }, [plataforma, logoSrc]);
 
   const aplicarPrevia = useCallback((parcial: Partial<Plataforma> | null) => {
