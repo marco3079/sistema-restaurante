@@ -2,15 +2,18 @@
 
 ## Contêineres
 
-O `docker-compose.yml` sobe três serviços:
+O `docker-compose.yml` sobe quatro serviços:
 
 | Serviço | O que é | Porta no computador |
 |---|---|---|
 | `db` | PostgreSQL 16 | `127.0.0.1:${DB_PORT}` (padrão 5433) |
 | `api` | Node.js 20 + Express + Prisma | `127.0.0.1:${API_PORT}` (padrão 3091) |
 | `web` | nginx com o site React já compilado | `${WEB_PORT}` (padrão 8091) |
+| `atualizador` | Node.js + git + Docker CLI; atualiza o sistema para o último commit | nenhuma (só a rede interna) |
 
 O nginx do `web` encaminha `/api/` para o contêiner `api`. O site é o único acesso pela rede: banco e API só respondem ao próprio computador.
+
+O `atualizador` (`atualizador/servidor.js`, sem dependências) monta a pasta do projeto e o socket do Docker. A API repassa a ele os pedidos do gestor (`/api/atualizacao`), com um segredo no cabeçalho. Para atualizar, ele consulta o GitHub (`git fetch`), copia o banco (`pg_dump` para `backups/`), aplica o commit (`git merge --ff-only`), reconstrói (`docker compose build api web`) e recria a API e depois o site (`up -d --no-deps`), sem tocar no banco. O estado do git fica em memória, porque ler o git de uma pasta do Windows de dentro do contêiner é lento.
 
 Na subida, o contêiner `api` roda `prisma db push` (cria ou atualiza as tabelas), o seed (cria o gestor em banco vazio) e o servidor.
 
@@ -40,6 +43,7 @@ Na subida, o contêiner `api` roda `prisma db push` (cria ou atualiza as tabelas
 | `pedidos` | `/pedidos`, mudança de situação | gestor, garçom e cozinha |
 | `cliente` | `/cliente/mesas/:codigo` (cardápio, pedidos, chamar) | público, pelo código da mesa |
 | `painel` | `/painel/resumo`, `/busca`, `/notificacoes` | gestor e garçom |
+| `atualizacao` | `/atualizacao`, verificar e aplicar (ponte para o contêiner `atualizador`) | gestor |
 | `logs` | atividades e log do sistema | gestor |
 | `plataforma` | identidade, cores e e-mail | leitura pública da identidade; escrita do gestor |
 

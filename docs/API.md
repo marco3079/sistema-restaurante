@@ -168,6 +168,9 @@ Rotas públicas. O `:codigo` é o segredo da mesa, o mesmo do QR code.
 | PUT | `/configuracoes/email` | gestor | servidor de e-mail |
 | POST | `/configuracoes/email/teste` | gestor | envia um e-mail de teste |
 | GET | `/configuracoes/email/historico` | gestor | histórico de envios |
+| GET | `/atualizacao` | gestor | versão instalada, última do GitHub, commits pendentes, tarefa em andamento e cópias do banco; `{ ativo: false, motivo }` se o atualizador não responde |
+| POST | `/atualizacao/verificar` | gestor | consulta o GitHub agora e devolve o mesmo estado |
+| POST | `/atualizacao/aplicar` | gestor | `{ forcar? }`: copia o banco, baixa o último commit, reconstrói e reinicia a API e o site; `409` se já há uma em andamento. Com `forcar`, reconstrói mesmo sem commit novo |
 | POST | `/logs/tela` | logado | registra a tela aberta |
 | GET | `/logs` | gestor | log do sistema, com filtros |
 | GET | `/logs/resumo` | gestor | resumo das atividades |

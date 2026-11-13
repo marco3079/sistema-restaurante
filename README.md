@@ -26,6 +26,7 @@
 - [Dados de demonstração](#dados-de-demonstração)
 - [Maquinetas](#maquinetas)
 - [Pix, impressão e nota fiscal](#pix-impressão-e-nota-fiscal)
+- [Atualizar o sistema](#atualizar-o-sistema)
 - [Configuração](#configuração)
 - [Arquitetura](#arquitetura)
 - [Desenvolvimento](#desenvolvimento)
@@ -112,6 +113,7 @@ Um único app, com uma entrada para cada pessoa:
 - Atividades e log do sistema (quem fez o quê).
 - Nome, logo, cores e envio de e-mails. A logo enviada pelo gestor vira também o ícone da aba do navegador.
 - Temas claro e escuro, no computador e no celular.
+- Atualização por um botão: o gestor vê a versão instalada, o que mudou no GitHub e atualiza o sistema sem abrir o terminal. Veja [Atualizar o sistema](#atualizar-o-sistema).
 
 ## Telas
 
@@ -257,6 +259,30 @@ Os itens da demonstração vêm com foto (arquivos em `client/public/cardapio/`)
 | Cozinha | `cozinha@restaurante.demo` | `cozinha1234` |
 | Limpeza | `limpeza@restaurante.demo` | `limpeza1234` |
 | Recepção | `recepcao@restaurante.demo` | `recepcao1234` |
+
+## Atualizar o sistema
+
+Em **Configurações > Atualização**, o gestor vê a versão instalada (o commit), a última versão do repositório no GitHub e a lista do que mudou. O painel inicial avisa quando há novidade. O sistema consulta o GitHub sozinho a cada 6 horas, e o botão "Verificar agora" consulta na hora.
+
+<img src="docs/imagens/atualizacao.png" alt="Aba Atualização, com a versão instalada, a última do GitHub e o botão de atualizar" width="900">
+
+O botão **Atualizar agora** faz, nesta ordem:
+
+1. grava uma cópia do banco de dados em `backups/` (ficam as 5 mais recentes);
+2. baixa o último commit do ramo instalado;
+3. reconstrói a API e o site;
+4. reinicia os dois. O banco não é reiniciado.
+
+O sistema fica fora do ar por alguns minutos (de 3 a 5 em um computador comum). Se a cópia do banco falhar, nada é alterado. Se a reconstrução falhar, o sistema continua na versão anterior e a tela mostra o registro do erro.
+
+Como funciona: quem faz o trabalho é um contêiner à parte, o `atualizador`, que tem acesso ao Docker do computador e à pasta do projeto. Ele não é publicado na rede: só a API fala com ele, com um segredo, e só o gestor aciona. Leia os cuidados em [SECURITY.md](SECURITY.md).
+
+Limites:
+
+- Só entra atualização "para a frente" (`git merge --ff-only`). Se a pasta do sistema tiver arquivos alterados à mão que conflitem com o commit novo, a atualização é recusada e nada muda.
+- O próprio `atualizador` não se atualiza pelo botão. Quando ele mudar, rode o instalador de novo (veja [INSTALAR.md](INSTALAR.md)).
+- O repositório precisa ser alcançável sem senha (o repositório público por HTTPS funciona).
+- Para voltar uma cópia do banco: `gunzip -c backups/<arquivo>.sql.gz | docker compose exec -T db psql -U restaurante -d restaurante` (em um banco vazio).
 
 ## Configuração
 

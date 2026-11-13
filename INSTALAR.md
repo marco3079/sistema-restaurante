@@ -68,13 +68,15 @@ Só o site fica acessível pela rede. A API e o banco aceitam conexões somente 
 
 ## Atualizar
 
-Entre na pasta do projeto e rode:
+**Pelo sistema (mais fácil):** entre como gestor, abra **Configurações > Atualização** e clique em **Atualizar agora**. O sistema copia o banco, baixa a última versão do GitHub e reinicia sozinho. Leva alguns minutos.
+
+**Pelo terminal:** entre na pasta do projeto e rode:
 
 ```bash
 git pull
 ```
 
-Depois rode o instalador de novo (`.\instalar.ps1` no Windows ou `bash instalar.sh` no Linux e macOS). Os dados do banco são mantidos.
+Depois rode o instalador de novo (`.\instalar.ps1` no Windows ou `bash instalar.sh` no Linux e macOS). Os dados do banco são mantidos. Use este caminho também se a aba Atualização disser que o atualizador não está respondendo: o instalador cria o contêiner que faz a atualização pelo botão.
 
 ## Parar o sistema
 
