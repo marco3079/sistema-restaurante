@@ -2,6 +2,7 @@ import { Response, Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler, HttpError, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { chamar, motivoIndisponivel } from '../../lib/atualizador';
 
 // A API só repassa estes pedidos para o serviço "atualizador", que roda em outro contêiner.
 // O contêiner da API não tem acesso ao Docker, então é o atualizador que baixa o código novo
@@ -28,42 +29,12 @@ interface EstadoDoAtualizador {
   backups: { arquivo: string; tamanho: number; criadoEm: string }[];
 }
 
-const MOTIVO_SEM_SEGREDO = 'O atualizador não está configurado neste servidor.';
-const MOTIVO_SEM_RESPOSTA = 'O atualizador não está respondendo. Rode o instalador de novo para ligá-lo.';
-
 const router = Router();
-
-// Chamada ao atualizador. Devolve null se não há segredo, se houve erro de rede,
-// tempo esgotado ou resposta que não é JSON.
-async function chamar(
-  metodo: 'GET' | 'POST',
-  caminho: string,
-  corpo: unknown | undefined,
-  tempoMs: number
-): Promise<{ status: number; dados: unknown } | null> {
-  const segredo = process.env.ATUALIZADOR_SEGREDO;
-  if (!segredo) return null;
-  const base = (process.env.ATUALIZADOR_URL ?? 'http://atualizador:4000').replace(/\/+$/, '');
-  const cabecalhos: Record<string, string> = { 'x-atualizador-segredo': segredo };
-  const opcoes: RequestInit = { method: metodo, headers: cabecalhos, signal: AbortSignal.timeout(tempoMs) };
-  if (corpo !== undefined) {
-    cabecalhos['Content-Type'] = 'application/json';
-    opcoes.body = JSON.stringify(corpo);
-  }
-  try {
-    const resposta = await fetch(`${base}${caminho}`, opcoes);
-    const texto = await resposta.text();
-    return { status: resposta.status, dados: JSON.parse(texto) as unknown };
-  } catch {
-    return null;
-  }
-}
 
 // Converte a resposta do atualizador na resposta da API. Nunca inclui o segredo.
 function responder(res: Response, resultado: { status: number; dados: unknown } | null): void {
   if (resultado === null) {
-    const motivo = process.env.ATUALIZADOR_SEGREDO ? MOTIVO_SEM_RESPOSTA : MOTIVO_SEM_SEGREDO;
-    res.json({ ativo: false, motivo });
+    res.json({ ativo: false, motivo: motivoIndisponivel() });
     return;
   }
   if (resultado.status >= 200 && resultado.status <= 299) {

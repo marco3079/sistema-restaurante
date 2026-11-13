@@ -1,0 +1,82 @@
+/* Caixa da gaveta: abertura, movimentos e fechamento. Cores só por variáveis do tema. */
+
+.caixa-texto {
+  color: var(--cor-texto-suave);
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+.caixa-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.caixa-forma {
+  margin-bottom: 0.75rem;
+}
+
+.caixa-forma:last-child {
+  margin-bottom: 0;
+}
+
+.caixa-forma-topo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.caixa-barra {
+  height: 0.6rem;
+  margin-top: 0.3rem;
+  background: var(--cor-superficie-2);
+  border-radius: var(--raio-pequeno);
+  overflow: hidden;
+}
+
+.caixa-barra > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--cor-primaria);
+  border-radius: inherit;
+}
+
+.caixa-linha {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.3rem 0;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px dashed var(--cor-borda);
+}
+
+.caixa-linha strong {
+  text-align: right;
+}
+
+.caixa-subtitulo {
+  margin: 1rem 0 0.4rem;
+  font-size: 1rem;
+}
+
+.caixa-diferenca {
+  margin: 0.5rem 0;
+  font-weight: 700;
+  min-height: 1.4em;
+}
+
+.caixa-dif-sobra {
+  color: var(--cor-verde);
+}
+
+.caixa-dif-falta {
+  color: var(--cor-perigo);
+}
+
+.caixa-dif-ok {
+  color: var(--cor-texto);
+}

@@ -1,0 +1,42 @@
+/* Rateio da taxa de serviço. Cores só por variáveis do tema (funcionam no escuro). */
+
+.rateio-regra {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+  margin: 8px 0 12px;
+}
+
+.rateio-vazio {
+  color: var(--cor-texto-suave);
+  margin: 12px 0;
+}
+
+.rateio-periodo {
+  flex-wrap: wrap;
+}
+
+.rateio-datas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.rateio-percentuais {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.rateio-soma {
+  font-weight: 700;
+  margin: 10px 0 0;
+}
+
+.rateio-soma-ok {
+  color: var(--cor-verde);
+}
+
+.rateio-soma-erro {
+  color: var(--cor-perigo);
+}

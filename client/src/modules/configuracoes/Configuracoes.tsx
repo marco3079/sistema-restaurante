@@ -5,6 +5,7 @@ import { usePlataforma } from '../../lib/plataforma';
 import { Abas, Aviso, Carregando, Pagina } from '../../ui';
 import { mensagemErro } from '../cadastros/tipos';
 import { Atualizacao } from './Atualizacao';
+import { Backup } from './Backup';
 import { Cores } from './Cores';
 import { Email } from './Email';
 import { Identidade } from './Identidade';
@@ -16,6 +17,7 @@ const ABAS = [
   { id: 'cores', rotulo: 'Cores' },
   { id: 'email', rotulo: 'E-mail' },
   { id: 'atualizacao', rotulo: 'Atualização' },
+  { id: 'backup', rotulo: 'Backup' },
 ];
 
 export function Configuracoes() {
@@ -106,6 +108,7 @@ export function Configuracoes() {
             <Email config={config} aoSalvo={aoSalvarEmail} />
           </div>
           {aba === 'atualizacao' && <Atualizacao />}
+          {aba === 'backup' && <Backup />}
         </>
       )}
     </Pagina>

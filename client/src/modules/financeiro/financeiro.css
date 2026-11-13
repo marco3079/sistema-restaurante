@@ -1,0 +1,219 @@
+/* Ganhos e gastos (financeiro). Cores só por variáveis do tema, para funcionar no escuro. */
+
+.financeiro-periodo {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.financeiro-datas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.financeiro-filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: 12px;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.financeiro-linha {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 420px) {
+  .financeiro-datas,
+  .financeiro-linha {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.financeiro-nota {
+  margin: 14px 2px;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.financeiro-detalhe {
+  color: var(--cor-texto-suave);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+.financeiro-vazio {
+  margin: 8px 0;
+  color: var(--cor-texto-suave);
+}
+
+.financeiro-cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+/* ---------- Gráfico de barras por dia ---------- */
+
+.financeiro-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+  color: var(--cor-texto-suave);
+}
+
+.financeiro-marca {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.financeiro-marca-receita,
+.financeiro-barra-receita {
+  background: var(--cor-verde);
+}
+
+.financeiro-marca-despesa,
+.financeiro-barra-despesa {
+  background: var(--cor-perigo);
+}
+
+.financeiro-grafico {
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.financeiro-colunas {
+  display: flex;
+  gap: 6px;
+  min-width: 100%;
+  align-items: stretch;
+}
+
+.financeiro-coluna {
+  flex: 1 0 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.financeiro-barras {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  width: 100%;
+  height: 180px;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.financeiro-barra {
+  flex: 1 1 0;
+  min-height: 0;
+  border-radius: 3px 3px 0 0;
+}
+
+.financeiro-rotulo-dia {
+  font-size: 0.75rem;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+/* ---------- Listas com barra horizontal ---------- */
+
+.financeiro-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.financeiro-lista-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.92rem;
+  margin-bottom: 4px;
+  min-width: 0;
+}
+
+.financeiro-lista-topo > span:first-child {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.financeiro-lista-topo > span:last-child {
+  white-space: nowrap;
+  color: var(--cor-texto-suave);
+}
+
+.financeiro-trilha {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--cor-superficie-2);
+  overflow: hidden;
+}
+
+.financeiro-preenchimento {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--cor-primaria);
+}
+
+/* ---------- Lançamentos e categorias ---------- */
+
+.financeiro-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.financeiro-nome {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.financeiro-situacao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.financeiro-totais {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px 24px;
+  margin-top: 12px;
+  font-size: 0.95rem;
+}
+
+.financeiro-bolinha {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--cor-borda);
+}
+
+.financeiro-cor {
+  width: 64px;
+  height: 40px;
+  padding: 2px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie);
+  cursor: pointer;
+}

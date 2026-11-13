@@ -10,4 +10,5 @@ export interface RotaModulo {
   elemento: ReactNode;
   menu?: boolean; // padrão true; false para telas de detalhe
   ordem?: number; // posição no menu (menor primeiro); padrão 100
+  grupo?: string; // título do grupo do menu; sem isto, o grupo vem do ícone
 }

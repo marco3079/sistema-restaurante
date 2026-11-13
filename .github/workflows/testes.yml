@@ -1,0 +1,75 @@
+name: Testes
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: testes-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: Typecheck e build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Servidor - dependências, Prisma e typecheck
+        working-directory: server
+        run: |
+          npm ci || npm install
+          npx prisma generate
+          npx tsc --noEmit
+      - name: Cliente - dependências, typecheck e build
+        working-directory: client
+        run: |
+          npm ci || npm install
+          npx tsc --noEmit
+          npm run build
+
+  api:
+    name: Testes da API
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cria o .env de teste
+        run: |
+          printf '%s\n' \
+            'POSTGRES_PASSWORD=ci-senha-123456' \
+            'JWT_SECRET=ci-segredo-de-teste-0123456789abcdef' \
+            'SEED_DEMO=true' > .env
+      - name: Sobe o sistema com Docker Compose
+        run: docker compose up -d --build
+      - name: Espera a API responder
+        run: |
+          for tentativa in $(seq 1 60); do
+            if curl -fsS http://localhost:3091/api/saude; then
+              echo
+              echo "API no ar."
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "A API não subiu a tempo. Últimos logs:"
+          docker compose logs --tail 100
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Roda os testes
+        run: node --test --test-concurrency=1 server/tests/
+      - name: Logs da API (quando algo falhou)
+        if: failure()
+        run: docker compose logs --tail 200 api
+      - name: Derruba o sistema
+        if: always()
+        run: docker compose down -v

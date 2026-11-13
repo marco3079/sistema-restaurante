@@ -6,6 +6,7 @@ import { HttpError } from './erros';
 import { ocuparMesa } from './mesas';
 import { garantirConta } from './contas';
 import { baixarPorPedido } from './estoque';
+import { baixarInsumosPorPedido } from './insumos';
 
 // Regras comuns aos pedidos feitos pela equipe e pelo cardápio da mesa.
 
@@ -119,6 +120,7 @@ export async function criarPedido(entrada: {
       include: incluirPedido,
     });
     await baixarPorPedido(tx, entrada.itens, criado.id);
+    await baixarInsumosPorPedido(tx, entrada.itens, criado.id);
     return criado;
   });
   // Mesa com pedido é mesa ocupada.

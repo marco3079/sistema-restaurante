@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "typecheck": "tsc --noEmit",
+    "test": "node --test --test-concurrency=1 tests/",
     "seed": "tsx prisma/seed.ts",
     "db:push": "prisma db push --skip-generate",
     "postinstall": "prisma generate"

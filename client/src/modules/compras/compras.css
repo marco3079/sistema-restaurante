@@ -1,0 +1,80 @@
+/* Compras e fornecedores. Classes com prefixo compras-; só variáveis do tema. */
+
+.compras-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.compras-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.compras-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--cor-superficie-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+}
+
+@media (min-width: 720px) {
+  .compras-linha {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.5fr) minmax(0, 0.7fr) minmax(0, 0.9fr) auto auto;
+    align-items: end;
+  }
+}
+
+.compras-subtotal {
+  align-self: center;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.compras-acoes-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.compras-total {
+  margin: 0;
+  font-size: 1.05rem;
+  text-align: right;
+}
+
+.compras-ajuda {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.compras-detalhe {
+  display: block;
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.compras-nome {
+  display: block;
+  font-weight: 600;
+  color: var(--cor-texto);
+  overflow-wrap: anywhere;
+}
+
+.compras-texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.compras-marcar {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}

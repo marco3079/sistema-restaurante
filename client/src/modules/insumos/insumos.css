@@ -1,0 +1,149 @@
+/* Telas de insumos e fichas técnicas. Cores e raios só pelas variáveis de ui/estilo.css. */
+
+.insumos-ajuda {
+  margin: 0 0 1rem;
+  color: var(--cor-texto-suave);
+  line-height: 1.5;
+}
+
+.insumos-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.insumos-filtros > .campo {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+.insumos-filtros > .caixa {
+  min-height: var(--altura-toque);
+}
+
+.insumos-filtros > .botao {
+  flex: 0 0 auto;
+}
+
+.insumos-ajuda-campo {
+  margin: 0.25rem 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.insumos-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+
+.insumos-linha {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  gap: 0.5rem 0.75rem;
+  align-items: end;
+  padding: 0.75rem;
+  background: var(--cor-superficie-2);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+}
+
+.insumos-linha-insumo {
+  grid-column: 1 / 2;
+  min-width: 0;
+}
+
+.insumos-linha-quantidade {
+  grid-column: 2 / 3;
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.insumos-linha-quantidade .campo {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.insumos-linha-unidade {
+  padding-bottom: 0.7rem;
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.insumos-linha-resumo {
+  grid-column: 1 / 3;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.insumos-linha-remover {
+  grid-column: 3 / 4;
+  justify-self: end;
+}
+
+.insumos-total {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--cor-primaria-suave);
+  color: var(--cor-texto);
+  border-radius: var(--raio-pequeno);
+  font-weight: 600;
+}
+
+.insumos-total span {
+  white-space: nowrap;
+}
+
+.insumos-acoes-modal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.insumos-sem-quebra {
+  white-space: nowrap;
+}
+
+.insumos-quantidade-sinal {
+  font-variant-numeric: tabular-nums;
+}
+
+.insumos-dica-custo {
+  margin: 0.25rem 0 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .insumos-linha {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .insumos-linha-insumo {
+    grid-column: 1 / 3;
+  }
+
+  .insumos-linha-quantidade {
+    grid-column: 1 / 2;
+  }
+
+  .insumos-linha-remover {
+    grid-column: 2 / 3;
+  }
+
+  .insumos-linha-resumo {
+    grid-column: 1 / 3;
+  }
+}

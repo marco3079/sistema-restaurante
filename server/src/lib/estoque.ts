@@ -103,3 +103,17 @@ export async function lancarMovimento(dados: {
     return movimentar(tx, dados.produtoId, dados.tipo, delta, dados.motivo, dados.usuarioNome);
   });
 }
+
+// Entrada de produto por compra recebida, dentro da transação de quem chama.
+// Devolve o saldo novo. Se o produto não tem controle de estoque, não faz nada e devolve null.
+export async function entradaPorCompra(
+  tx: Cliente,
+  produtoId: number,
+  quantidade: number,
+  motivo: string | null,
+  usuarioNome: string | null
+): Promise<number | null> {
+  const produto = await tx.produto.findUnique({ where: { id: produtoId }, select: { controlaEstoque: true } });
+  if (!produto || !produto.controlaEstoque) return null;
+  return movimentar(tx, produtoId, 'ENTRADA', quantidade, motivo, usuarioNome);
+}

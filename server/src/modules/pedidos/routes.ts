@@ -5,6 +5,7 @@ import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
 import { devolverPorPedido } from '../../lib/estoque';
+import { devolverInsumosPorPedido } from '../../lib/insumos';
 import { fecharSeQuitada } from '../../lib/pagamentos';
 import {
   criarPedido,
@@ -123,10 +124,21 @@ router.put(
         );
       }
     }
+    // Horas da operação: quando a cozinha começou, quando ficou pronto e quando foi entregue.
+    const agora = new Date();
+    const horas: { preparoIniciadoEm?: Date; prontoEm?: Date; entregueEm?: Date } = {};
+    if (status === 'EM_PREPARO') horas.preparoIniciadoEm = agora;
+    if (status === 'PRONTO') {
+      horas.prontoEm = agora;
+      // Se o pedido pulou de NOVO direto para PRONTO, o preparo também começou agora.
+      if (atual.status === 'NOVO') horas.preparoIniciadoEm = agora;
+    }
+    if (status === 'ENTREGUE') horas.entregueEm = agora;
     const pedido = await prisma.pedido.update({
       where: { id },
       data: {
         status,
+        ...horas,
         // O primeiro garçom (ou gestor) que mexe em um pedido do cliente passa a responder por ele.
         garcomId: atual.garcomId ?? (perfil === 'COZINHA' ? null : req.usuario.id),
       },
@@ -135,6 +147,8 @@ router.put(
     if (status === 'CANCELADO') {
       // Os itens com controle de estoque voltam para o saldo.
       await devolverPorPedido(id);
+      // Os insumos das fichas técnicas também voltam.
+      await devolverInsumosPorPedido(id);
       // Conta que ficou quitada com o cancelamento (já tinha pagamento parcial) é fechada.
       if (pedido.contaId) {
         await fecharSeQuitada(pedido.contaId);

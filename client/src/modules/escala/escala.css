@@ -1,0 +1,190 @@
+/* Escala da semana e ponto. Só variáveis de ui/estilo.css (funciona no tema escuro). */
+
+.escala-navegacao {
+  align-items: center;
+}
+
+.escala-titulo-semana {
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.escala-formulario-info {
+  margin: 0 0 0.75rem;
+  color: var(--cor-texto-suave);
+}
+
+/* Grade da escala: rola na horizontal no celular; a coluna do nome fica fixa. */
+.escala-rolagem {
+  overflow-x: auto;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  max-width: 100%;
+}
+
+.escala-grade {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.9rem;
+}
+
+.escala-grade th,
+.escala-grade td {
+  border-bottom: 1px solid var(--cor-borda);
+  border-right: 1px solid var(--cor-borda);
+  padding: 0.4rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.escala-grade thead th {
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.escala-coluna-nome {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--cor-superficie);
+  min-width: 140px;
+  max-width: 170px;
+}
+
+.escala-grade thead .escala-coluna-nome {
+  z-index: 2;
+  background: var(--cor-superficie-2);
+}
+
+.escala-grade .escala-hoje {
+  background: var(--cor-primaria-suave);
+}
+
+.escala-grade thead .escala-hoje {
+  background: var(--cor-primaria-suave);
+  color: var(--cor-texto);
+}
+
+.escala-data {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.escala-nome {
+  display: block;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.escala-perfil {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--cor-texto-suave);
+}
+
+.escala-celula {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 96px;
+}
+
+.escala-turno {
+  border: 1px solid var(--cor-primaria);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-texto);
+  border-radius: var(--raio-pequeno);
+  padding: 0.25rem 0.45rem;
+  font: inherit;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.escala-mais {
+  border: 1px dashed var(--cor-borda);
+  background: transparent;
+  color: var(--cor-texto-suave);
+  border-radius: var(--raio-pequeno);
+  padding: 0 0.5rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+.escala-vazio {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+.escala-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.escala-lista-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+.escala-ajuste {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+}
+
+/* Meu ponto: relógio e botão grande. */
+.ponto-relogio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.ponto-hora {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cor-texto);
+}
+
+.ponto-data {
+  margin: 0;
+  text-transform: capitalize;
+  color: var(--cor-texto-suave);
+}
+
+.ponto-acao {
+  width: 100%;
+  max-width: 420px;
+  min-height: 72px;
+  font-size: 1.2rem;
+}
+
+.ponto-situacao {
+  margin: 0;
+  color: var(--cor-texto-suave);
+}
+
+@media (max-width: 480px) {
+  .ponto-hora {
+    font-size: 2.4rem;
+  }
+}
