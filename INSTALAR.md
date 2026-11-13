@@ -66,6 +66,10 @@ O sistema começa vazio, só com a conta do gestor.
 
 Só o site fica acessível pela rede. A API e o banco aceitam conexões somente deste computador.
 
+## Notificações e aplicativo no celular
+
+Para o celular avisar quando a mesa chama ou o pedido fica pronto, e para instalar o sistema como aplicativo, o site precisa estar em **HTTPS** (um endereço com cadeado). Em uma rede local com `http://`, tudo o mais funciona, inclusive as telas em tempo real e o som. Para ter HTTPS, coloque um proxy com certificado na frente do site (por exemplo, Caddy) ou use um túnel com HTTPS.
+
 ## Atualizar
 
 **Pelo sistema (mais fácil):** entre como gestor, abra **Configurações > Atualização** e clique em **Atualizar agora**. O sistema copia o banco, baixa a última versão do GitHub e reinicia sozinho. Leva alguns minutos.

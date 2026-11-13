@@ -100,3 +100,27 @@ Definido em `server/prisma/schema.prisma`.
 - `src/lib/`: `api` (fetch com o token), `auth`, `plataforma` (nome, logo e cores), `tema`, `useDados` (busca com estado) e `useAtualizacao` (atualização periódica).
 
 O menu lateral é montado a partir das rotas: a rota entra em um grupo pelo ícone dela (`src/layout/grupos.ts`).
+
+## Módulos acrescentados
+
+| Módulo | O que faz |
+|---|---|
+| `financeiro`, `caixa`, `relatorios` | ganhos e gastos, caixa e relatórios de vendas (leem os pagamentos aprovados) |
+| `insumos`, `compras` | insumos, ficha técnica e custo do prato; fornecedores e compras |
+| `escala`, `rateio` | escala e ponto; rateio da taxa de serviço e das gorjetas |
+| `promocoes`, `descontos`, `clientes`, `avaliacoes` | promoções e cupons; descontos na conta; clientes e fidelidade; avaliações |
+| `setores`, `transferencias` | setores de preparo; trocar, juntar e transferir entre mesas |
+| `delivery` | cardápio público, pedidos de entrega e retirada, acompanhamento e a fila da equipe |
+| `eventos`, `operacao`, `push`, `permissoes`, `backup` | tempo real, alerta de atraso, notificações, ações sensíveis e backup |
+
+## Regras acrescentadas
+
+- **Preço do item**: preço valendo agora (`lib/precos.ts`: a promoção de menor preço que vale no dia e na hora) mais os acréscimos das opções escolhidas. O item guarda o preço cobrado, o preço de tabela quando houve promoção e as opções.
+- **Conta**: `subtotal − desconto` (cupom, depois pontos, depois desconto manual; nunca além do subtotal), taxa de serviço sobre o que sobra, mais a taxa de entrega quando houver. Tudo calculado em `lib/contas.ts`; as telas não recalculam.
+- **Fechamento da conta**: uma transação fecha a conta só se ela ainda estiver aberta, marca os pedidos como pagos e libera a mesa. Só depois, e uma única vez, contam o uso do cupom, os pontos de fidelidade e a nota fiscal.
+- **Combos e insumos**: a venda baixa o estoque dos produtos do combo e os insumos das fichas técnicas; o cancelamento devolve os dois.
+- **Setores**: cada categoria pode ter um setor. O pedido ganha uma parte por setor (`PedidoSetor`). Quem é da cozinha e tem setor muda só a parte dele, e o pedido fica pronto quando todas as partes ficam. Sem setores cadastrados, nada muda.
+- **Mesas virtuais**: um pedido de delivery ou de retirada ganha uma mesa só dele (`Mesa.tipo`), para usar a mesma conta, cobrança, cupom e nota das mesas do salão. As listagens do salão filtram `tipo = SALAO`, e a mesa virtual é desativada quando o pedido termina.
+- **Tempo real**: um middleware publica toda mudança feita pela API (`lib/eventos.ts`). O módulo `eventos` repassa só o nome do módulo que mudou, por um fluxo mantido aberto; a tela recarrega os próprios dados. Sem a conexão, a atualização por tempo continua.
+- **Ações sensíveis**: `lib/autorizacao.ts` decide, para quem não é gestor, se a ação é livre, pede a senha do gestor ou é só do gestor. As regras ficam na configuração; o padrão repete o comportamento anterior.
+- **Backup**: quem copia e restaura é o contêiner `atualizador`. A restauração guarda antes uma cópia do banco atual, para a API, recria o banco pela cópia escolhida e religa o sistema; se a cópia falhar, recoloca o banco anterior.

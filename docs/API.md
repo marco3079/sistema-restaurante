@@ -175,3 +175,94 @@ Rotas públicas. O `:codigo` é o segredo da mesa, o mesmo do QR code.
 | GET | `/logs` | gestor | log do sistema, com filtros |
 | GET | `/logs/resumo` | gestor | resumo das atividades |
 | GET | `/logs/usuarios/:id/resumo` | gestor | atividade de um usuário |
+
+## Ganhos e gastos, caixa e relatórios
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET, POST, PUT, DELETE | `/financeiro/categorias` | gestor | categorias de despesa e de receita |
+| GET, POST, PUT, DELETE | `/financeiro/lancamentos` | gestor | despesas e outras receitas; `POST /financeiro/lancamentos/:id/pagar` marca como pago |
+| GET | `/financeiro/resumo?de&ate` | gestor | vendas, outras receitas, despesas, resultado, contas a pagar, por dia, por categoria e por forma de pagamento |
+| GET | `/caixa` | gestor, garçom, recepção | caixa aberto e o último fechado |
+| POST | `/caixa/abrir`, `/caixa/movimentos`, `/caixa/fechar` | gestor, garçom, recepção | troco inicial; sangria ou reforço; fechamento com o dinheiro contado |
+| GET | `/caixa/historico?dias=` | gestor | caixas fechados |
+| GET | `/relatorios/vendas?de&ate` | gestor | resumo, produtos, categorias, por hora, por dia da semana e por dia |
+
+## Insumos, fichas e compras
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET, POST, PUT, DELETE | `/insumos` | gestor (a cozinha lê, sem custo) | insumos com saldo, mínimo e custo médio |
+| GET, POST | `/insumos/:id/movimentos` | gestor | histórico; entrada (com custo), saída e acerto de contagem |
+| GET | `/fichas` | gestor | custo, margem e CMV de cada produto |
+| PUT | `/fichas/:produtoId` | gestor | troca a ficha técnica do produto |
+| GET, POST, PUT, DELETE | `/fornecedores` | gestor | fornecedores |
+| GET, POST, PUT | `/compras` | gestor | pedidos de compra; `/compras/:id/receber` dá entrada no estoque e lança a despesa; `/compras/:id/cancelar`; `/compras/sugestao` lista o que está no mínimo |
+
+## Equipe: escala, ponto e rateio
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET, POST, PUT, DELETE | `/escala` | gestor | turnos; `POST /escala/copiar` copia uma semana |
+| GET | `/escala/minha` | todos | os próximos turnos de quem está logado |
+| GET, POST | `/ponto/meu`, `/ponto/entrada`, `/ponto/saida` | todos | o próprio ponto |
+| GET, POST, PUT, DELETE | `/ponto` | gestor | ponto de todos, com totais e correções |
+| GET, PUT | `/rateio/regra` | gestor | percentuais por perfil e modo de divisão |
+| GET | `/rateio/simular?de&ate` | gestor | quanto cabe a cada pessoa |
+| POST, GET, DELETE | `/rateio/fechar`, `/rateio/repasses` | gestor | fecha e guarda o rateio de um período |
+
+## Cardápio: opções, promoções, cupons e idiomas
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| PUT | `/produtos/:id/opcoes` | gestor | troca os grupos de opções e adicionais do produto |
+| GET, PUT | `/cardapio/idiomas` | todos leem; gestor grava | idiomas do cardápio do cliente |
+| GET, POST, PUT, DELETE | `/promocoes` | gestor (o garçom lê) | preço promocional por dia e horário |
+| GET, POST, PUT, DELETE | `/cupons` | gestor | cupons de desconto |
+
+Os produtos passam a trazer `precoAtual`, `promocao`, `combo`, `comboItens`, `grupos` e `traducoes`. No pedido, cada item aceita `opcoes` (ids das opções escolhidas).
+
+## Descontos na conta, clientes e avaliações
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| POST, DELETE | `/mesas/:id/conta/cupom` | gestor, garçom | aplica ou tira o cupom |
+| PUT | `/mesas/:id/conta/cliente` | gestor, garçom, recepção | liga o cliente pelo telefone (cadastra se for novo) |
+| POST, DELETE | `/mesas/:id/conta/pontos` | gestor, garçom | usa ou devolve pontos |
+| PUT | `/mesas/:id/conta/desconto` | gestor (garçom conforme a permissão) | desconto em reais, com motivo |
+| GET, POST, PUT, DELETE | `/clientes` | gestor, recepção (garçom lê) | clientes; `POST /clientes/:id/pontos` ajusta pontos |
+| GET, PUT | `/fidelidade/configuracao` | gestor grava | pontos por real e valor do ponto |
+| GET | `/avaliacoes?de&ate` | gestor | notas, médias e comentários |
+| GET, POST | `/cliente/mesas/:codigo/avaliacao` | público | conta a avaliar e envio da avaliação |
+
+## Setores e mesas
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET, POST, PUT, DELETE | `/setores` | gestor grava | setores de preparo; `PUT /setores/:id/usuarios` define quem trabalha no setor; `GET /setores/meu` |
+| POST | `/mesas/:id/trocar`, `/mesas/:id/juntar`, `/mesas/:id/transferir-itens` | gestor, garçom | muda a conta de mesa, junta duas contas, move itens |
+
+## Delivery e retirada
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET | `/delivery/cardapio` | público | cardápio, bairros, pedido mínimo e tempos |
+| POST | `/delivery/pedidos` | público | cria o pedido de entrega ou retirada; devolve o código de acompanhamento |
+| GET | `/delivery/acompanhar/:codigo` | público | situação do pedido (sem telefone nem endereço) |
+| GET | `/delivery/pedidos?ver=` | gestor, garçom, recepção | pedidos de delivery com a conta |
+| POST | `/delivery/pedidos/:id/saiu`, `/concluir`, `/cancelar` | gestor, garçom, recepção | saiu para entrega; entregue e pago; cancelado |
+| GET, PUT | `/delivery/configuracao` | gestor | liga e desliga, pedido mínimo, tempos e recado |
+| POST, PUT, DELETE | `/delivery/bairros` | gestor | bairros e taxas |
+
+## Sistema: tempo real, notificações, permissões, backup
+
+| Método | Rota | Acesso | O que faz |
+|---|---|---|---|
+| GET | `/eventos` | logado | fluxo de eventos (`text/event-stream`): avisa que algo mudou, sem dados |
+| GET | `/cliente/mesas/:codigo/eventos` | público | o mesmo, para a tela do cliente |
+| GET, PUT | `/operacao/configuracao` | gestor grava | minutos para o alerta de atraso |
+| GET, POST, DELETE | `/push/chave`, `/push/inscricoes`, `/push/teste` | logado | notificações no aparelho de quem está logado |
+| GET, PUT | `/permissoes`, `/permissoes/minhas`, `/permissoes/senha` | gestor (cada um lê as suas) | regras das ações sensíveis e senha do gestor |
+| GET, POST, PUT, DELETE | `/backup`, `/backup/config`, `/backup/baixar`, `/backup/restaurar`, `/backup/arquivo` | gestor | backup diário, cópia manual, download e restauração |
+
+Ação que pede a senha do gestor responde `403` com `detalhes.codigo = "SENHA_GESTOR"`; repita a requisição com o cabeçalho `x-senha-gestor`.

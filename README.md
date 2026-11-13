@@ -27,6 +27,8 @@
 - [Maquinetas](#maquinetas)
 - [Pix, impressão e nota fiscal](#pix-impressão-e-nota-fiscal)
 - [Atualizar o sistema](#atualizar-o-sistema)
+- [Delivery, backup, permissões e notificações](#delivery-backup-permissões-e-notificações)
+- [Testes automáticos](#testes-automáticos)
 - [Configuração](#configuração)
 - [Arquitetura](#arquitetura)
 - [Desenvolvimento](#desenvolvimento)
@@ -105,6 +107,50 @@ Um único app, com uma entrada para cada pessoa:
 - Sacola, nome e observação do pedido.
 - Acompanhamento da situação de cada pedido e do total da mesa, com a taxa de serviço e o que já foi pago.
 - Botão de chamar o garçom sempre à mão, no topo do cardápio. Ele mostra "Garçom avisado" até alguém atender.
+
+**Cardápio que vende mais**
+
+- Adicionais e opções do prato: ponto da carne, tamanho, extras pagos, ingredientes para tirar. O gestor monta os grupos (com mínimo e máximo de escolhas) e o acréscimo entra no preço e na comanda.
+- Promoções por dia e horário (happy hour), para um produto, uma categoria ou o cardápio todo. O preço promocional entra sozinho no cardápio e nos pedidos.
+- Combos: um produto que vem com outros; a venda baixa o estoque de cada um.
+- Cupons de desconto, com validade, consumo mínimo e limite de usos.
+- Cardápio do cliente em português, inglês e espanhol: o gestor cadastra as traduções e o cliente escolhe a língua.
+
+**Clientes**
+
+- Cadastro do cliente pelo telefone, com histórico de visitas.
+- Programa de fidelidade: pontos ganhos por real gasto, que viram desconto na conta.
+- Avaliação pelo cardápio da mesa depois de pagar (comida e atendimento). A nota do atendimento entra no desempenho de quem recebeu a conta.
+
+**Delivery e retirada**
+
+- Cardápio público por link (`/pedir`), com pedido para entrega ou para retirar no balcão, taxa de entrega por bairro, pedido mínimo e forma de pagamento na entrega.
+- O cliente acompanha o pedido por um link próprio (recebido, em preparo, pronto, saiu para entrega, entregue).
+- A cozinha prepara pela fila normal; a equipe vê os pedidos de delivery em uma tela própria, com endereço, mapa, impressão e baixa do pagamento.
+
+**Salão, cozinha e equipe**
+
+- Setores de preparo (cozinha, bar, sobremesas): cada categoria vai para a fila do seu setor, e o pedido só fica pronto quando todas as partes ficam.
+- Trocar de mesa, juntar mesas e transferir itens entre contas.
+- Telas em tempo real: pedidos, mesas e chamados aparecem na hora.
+- Som para pedido novo, pedido pronto e mesa chamando (ligado por aparelho), e pedido parado além do tempo aparece como atrasado.
+- Escala da semana e ponto: cada pessoa registra a própria entrada e saída.
+- Rateio da taxa de serviço e das gorjetas entre garçons, cozinha, limpeza, recepção e a casa, por regra definida pelo gestor.
+- Permissões por ação: cancelar pedido, tirar a taxa, dar desconto e outras podem ser livres, pedir a senha do gestor ou ficar só com o gestor.
+
+**Dinheiro**
+
+- Ganhos e gastos: despesas e outras receitas por categoria, com o resultado do período, contas a pagar e gráficos.
+- Caixa: abertura com troco inicial, sangria, reforço e fechamento com conferência do dinheiro.
+- Insumos e ficha técnica: o custo e a margem de cada prato, com baixa dos insumos a cada venda.
+- Fornecedores e compras: o recebimento dá entrada no estoque e lança a despesa.
+- Relatórios de vendas por produto, categoria, hora e dia, com planilha.
+
+**Sistema**
+
+- Backup diário automático do banco, cópia manual, download e restauração pela tela.
+- Aplicativo instalável no celular, com notificação quando a mesa chama, o pedido fica pronto ou chega pedido novo (precisa de HTTPS).
+- Testes automáticos da API no repositório, que rodam no GitHub a cada commit.
 
 **Gestão**
 
@@ -195,6 +241,29 @@ Os dados dos prints são fictícios (dados de demonstração). As fotos dos prat
 
 <img src="docs/imagens/cardapio.png" alt="Produtos do cardápio com foto, preço e situação" width="900">
 
+**Ganhos e gastos, caixa e relatórios**
+
+<img src="docs/imagens/financeiro.png" alt="Ganhos e gastos: resultado do período, entradas e saídas por dia e despesas por categoria" width="900">
+
+<img src="docs/imagens/relatorios.png" alt="Relatórios de vendas por hora e por dia da semana" width="900">
+
+**Opções do prato, promoção e idioma no cardápio do cliente**
+
+<p>
+  <img src="docs/imagens/cliente-opcoes.png" alt="Escolha de opções e adicionais do prato" width="300">
+  <img src="docs/imagens/cliente-promocao.png" alt="Preço promocional no cardápio do cliente" width="300">
+</p>
+
+**Conta com cupom, cliente e pontos**
+
+<img src="docs/imagens/conta-descontos.png" alt="Conta com cupom aplicado e cliente do programa de fidelidade" width="900">
+
+**Escala da semana e backup**
+
+<img src="docs/imagens/escala.png" alt="Escala da semana por pessoa" width="900">
+
+<img src="docs/imagens/backup.png" alt="Backup automático e cópias guardadas" width="900">
+
 **Tema escuro e login**
 
 <img src="docs/imagens/painel-escuro.png" alt="Painel do gestor no tema escuro" width="900">
@@ -283,6 +352,30 @@ Limites:
 - O próprio `atualizador` não se atualiza pelo botão. Quando ele mudar, rode o instalador de novo (veja [INSTALAR.md](INSTALAR.md)).
 - O repositório precisa ser alcançável sem senha (o repositório público por HTTPS funciona).
 - Para voltar uma cópia do banco: `gunzip -c backups/<arquivo>.sql.gz | docker compose exec -T db psql -U restaurante -d restaurante` (em um banco vazio).
+
+## Delivery, backup, permissões e notificações
+
+**Delivery e retirada.** Em **Delivery > Configuração**, o gestor liga a entrega e a retirada, cadastra os bairros com a taxa de cada um, o pedido mínimo e os tempos estimados. O endereço para divulgar é `<endereço do site>/pedir`. O pagamento é feito na entrega ou na retirada (dinheiro, Pix ou cartão): a equipe dá baixa ao concluir. Não há pagamento on-line nem integração com aplicativos de entrega. Cada pedido de delivery usa uma "mesa virtual" interna, que não aparece no salão.
+
+<img src="docs/imagens/delivery-pedir.png" alt="Cardápio de delivery no celular" width="300"> <img src="docs/imagens/delivery-acompanhar.png" alt="Acompanhamento do pedido de delivery" width="300">
+
+**Backup.** Em **Configurações > Backup**, o sistema faz uma cópia do banco todo dia (hora e quantidade de cópias ajustáveis), além da cópia antes de cada atualização. Dá para fazer uma cópia na hora, baixar o arquivo e restaurar. Restaurar troca todo o banco pela cópia escolhida; antes, o sistema guarda uma cópia do banco atual, e se a cópia escolhida estiver estragada o banco anterior é recolocado. As cópias ficam na pasta `backups/` do computador onde o sistema está instalado: copie essa pasta para outro lugar para ficar protegido contra a perda do computador.
+
+**Permissões.** Em **Configurações > Permissões**, o gestor define uma senha curta (só números) e escolhe, para cada ação sensível, se o garçom pode fazer livremente, se precisa da senha do gestor ou se só o gestor faz. O padrão é o comportamento de sempre: tudo livre, menos o desconto na conta.
+
+**Notificações e aplicativo.** No sino do topo, cada pessoa liga as notificações no próprio aparelho e instala o sistema como aplicativo. Os navegadores só permitem isso com o site em **HTTPS** (ou em `localhost`): em uma rede local com `http://`, as telas em tempo real e os sons funcionam, mas as notificações e a instalação não aparecem. No iPhone, a notificação só funciona com o aplicativo instalado na tela de início.
+
+**Tempo real e som.** As telas se atualizam na hora por uma conexão mantida com o servidor; se ela cair, a atualização por tempo continua valendo. O som é ligado em cada aparelho, na fila de pedidos.
+
+## Testes automáticos
+
+Os testes da API ficam em `server/tests/` e rodam contra um sistema no ar com os dados de exemplo:
+
+```bash
+cd server && npm test
+```
+
+Eles criam pedidos, contas e reservas de verdade no banco em que rodam: use um banco de teste, não o do restaurante. No GitHub, o fluxo "Testes" (`.github/workflows/testes.yml`) roda o typecheck e esses testes a cada push e pull request. Veja `server/tests/LEIAME.md`.
 
 ## Configuração
 
