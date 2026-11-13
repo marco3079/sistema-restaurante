@@ -65,7 +65,7 @@ const ATALHOS_GESTOR: Atalho[] = [
   { rotulo: 'Ver pedidos', icone: 'pedidos', caminho: '/gestor/pedidos' },
   { rotulo: 'Mesas e contas', icone: 'mesas', caminho: '/gestor/mesas' },
   { rotulo: 'Salão e planta', icone: 'grade', caminho: '/gestor/salao' },
-  { rotulo: 'Maquinetas', icone: 'financeiro', caminho: '/gestor/maquinetas' },
+  { rotulo: 'Pagamentos', icone: 'financeiro', caminho: '/gestor/maquinetas' },
   { rotulo: 'Desempenho', icone: 'grafico', caminho: '/gestor/desempenho' },
   { rotulo: 'Editar cardápio', icone: 'cardapio', caminho: '/gestor/cardapio' },
   { rotulo: 'Equipe', icone: 'usuarios', caminho: '/gestor/usuarios' },
