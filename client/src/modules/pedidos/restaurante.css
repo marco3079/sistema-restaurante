@@ -883,3 +883,170 @@
   flex-direction: column;
   gap: 1rem;
 }
+
+/* ---------- Pedidos com opções, promoção, combo e setores (onda 2) ---------- */
+
+.pedido-item-opcoes {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.pedido-so-setor {
+  margin: 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  color: var(--cor-texto-suave);
+}
+
+.pedido-setores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.pedido-setor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.12rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: 999px;
+  background: var(--cor-superficie);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--cor-texto);
+}
+
+.pedido-setor-ponto {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
+.novo-pedido-antes {
+  margin-right: 0.3rem;
+  color: var(--cor-texto-suave);
+}
+
+.novo-pedido-combo {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.novo-pedido-promocao {
+  display: inline-block;
+}
+
+.novo-pedido-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0.6rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.novo-pedido-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie);
+}
+
+.novo-pedido-linha-texto {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.novo-pedido-linha-nome {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.novo-pedido-linha-opcoes {
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Escolha de opções (EscolherOpcoes) ---------- */
+
+.escolher {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.escolher-grupo {
+  min-width: 0;
+  margin: 0 0 0.7rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.escolher-titulo {
+  padding: 0 0.3rem;
+  font-weight: 700;
+}
+
+.escolher-regra {
+  margin-left: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--cor-texto-suave);
+}
+
+.escolher-opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.2rem;
+  cursor: pointer;
+}
+
+.escolher-opcao-bloqueada {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.escolher-opcao-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.escolher-opcao-preco {
+  flex: none;
+  white-space: nowrap;
+  color: var(--cor-texto-suave);
+}
+
+.escolher-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.6rem 0;
+  font-weight: 700;
+}
+
+.escolher-aviso {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+}

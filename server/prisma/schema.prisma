@@ -170,6 +170,8 @@ model Usuario {
   telefone  String?
   foto      String? // endereço http(s) ou data URL (imagem reduzida enviada pelo usuário)
   criadoEm  DateTime @default(now())
+  setorId   Int?
+  setor     Setor?   @relation(fields: [setorId], references: [id])
 
   pedidos    Pedido[]
   areas      Area[]          @relation("GarconsDaArea")
@@ -182,14 +184,18 @@ model Usuario {
 // ---------- Cardápio ----------
 
 model Categoria {
-  id       Int     @id @default(autoincrement())
-  nome     String  @unique
-  ordem    Int     @default(0)
-  ativa    Boolean @default(true)
+  id        Int     @id @default(autoincrement())
+  nome      String  @unique
+  ordem     Int     @default(0)
+  ativa     Boolean @default(true)
   // true = excluída pelo gestor, mas guardada porque há pedidos antigos com produtos dela
-  excluida Boolean @default(false)
+  excluida  Boolean @default(false)
+  setorId   Int?
+  setor     Setor?  @relation(fields: [setorId], references: [id])
+  traducoes Json?
 
-  produtos Produto[]
+  produtos  Produto[]
+  promocoes Promocao[]
 }
 
 model Produto {
@@ -230,10 +236,18 @@ model Produto {
   cfop     String?
   criadoEm DateTime @default(now())
 
+  // Combo: um produto com combo = true; os produtos que vêm nele estão em comboItens.
+  combo     Boolean @default(false)
+  traducoes Json?
+
   itens       ItemPedido[]
   movimentos  MovimentoEstoque[]
   fichaItens  FichaItem[]
   compraItens CompraItem[]
+  grupos      GrupoOpcao[]
+  promocoes   Promocao[]
+  comboItens  ComboItem[]        @relation("ItensDoCombo")
+  emCombos    ComboItem[]        @relation("ProdutoEmCombos")
 
   @@index([categoriaId])
 }
@@ -310,7 +324,8 @@ model Pedido {
   prontoEm          DateTime? // quando ficou pronto
   entregueEm        DateTime? // quando foi entregue
 
-  itens ItemPedido[]
+  itens   ItemPedido[]
+  setores PedidoSetor[]
 
   @@index([mesaId, pagoEm])
   @@index([status, criadoEm])
@@ -318,15 +333,18 @@ model Pedido {
 }
 
 model ItemPedido {
-  id            Int     @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   pedidoId      Int
-  pedido        Pedido  @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  pedido        Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   produtoId     Int
-  produto       Produto @relation(fields: [produtoId], references: [id])
+  produto       Produto  @relation(fields: [produtoId], references: [id])
   nomeProduto   String // cópia do nome no momento do pedido
-  precoUnitario Decimal @db.Decimal(10, 2) // cópia do preço no momento do pedido
+  precoUnitario Decimal  @db.Decimal(10, 2) // cópia do preço no momento do pedido
   quantidade    Int
   observacao    String?
+  opcoes        Json? // lista [{ grupo, opcao, precoExtra }]
+  precoOriginal Decimal? @db.Decimal(10, 2) // preço de tabela quando havia promoção
+  setorId       Int?
 
   @@index([pedidoId])
 }
@@ -345,10 +363,19 @@ model Conta {
   cpfCnpjCliente String? // para a nota fiscal
   abertaEm       DateTime    @default(now())
   fechadaEm      DateTime?
+  cupomId        Int?
+  cupom          Cupom?      @relation(fields: [cupomId], references: [id])
+  clienteId      Int?
+  cliente        Cliente?    @relation(fields: [clienteId], references: [id])
+  pontosUsados   Int         @default(0)
+  valorDoPonto   Decimal     @default(0) @db.Decimal(8, 4)
+  descontoManual Decimal     @default(0) @db.Decimal(10, 2)
+  descontoMotivo String?
 
   pedidos    Pedido[]
   pagamentos Pagamento[]
   nota       NotaFiscal?
+  avaliacao  Avaliacao?
 
   @@index([mesaId, status])
 }
@@ -693,6 +720,155 @@ model Repasse {
   @@index([criadoEm])
 }
 
+// ---------- Adicionais e opções do prato ----------
+
+model GrupoOpcao {
+  id        Int     @id @default(autoincrement())
+  produtoId Int
+  produto   Produto @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  nome      String // ex.: "Ponto da carne", "Adicionais"
+  minimo    Int     @default(0) // quantas opções o cliente precisa escolher
+  maximo    Int     @default(1) // quantas pode escolher
+  ordem     Int     @default(0)
+
+  opcoes Opcao[]
+
+  @@index([produtoId])
+}
+
+model Opcao {
+  id         Int        @id @default(autoincrement())
+  grupoId    Int
+  grupo      GrupoOpcao @relation(fields: [grupoId], references: [id], onDelete: Cascade)
+  nome       String
+  precoExtra Decimal    @default(0) @db.Decimal(10, 2)
+  ativa      Boolean    @default(true)
+  ordem      Int        @default(0)
+
+  @@index([grupoId])
+}
+
+// ---------- Promoções, combos e cupons ----------
+
+// Preço promocional por horário. Sem produto e sem categoria = vale para o cardápio todo.
+model Promocao {
+  id          Int        @id @default(autoincrement())
+  nome        String
+  produtoId   Int?
+  produto     Produto?   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  categoriaId Int?
+  categoria   Categoria? @relation(fields: [categoriaId], references: [id], onDelete: Cascade)
+  percentual  Decimal?   @db.Decimal(5, 2) // desconto em %
+  precoFixo   Decimal?   @db.Decimal(10, 2) // ou preço final (só com produto)
+  diasSemana  Int[] // 0 = domingo .. 6 = sábado; vazio = todos os dias
+  horaInicio  String     @default("00:00")
+  horaFim     String     @default("23:59")
+  dataInicio  DateTime?
+  dataFim     DateTime?
+  ativa       Boolean    @default(true)
+  criadaEm    DateTime   @default(now())
+}
+
+// Um combo é um Produto com combo = true; estes são os produtos que vêm nele.
+model ComboItem {
+  id         Int     @id @default(autoincrement())
+  comboId    Int
+  combo      Produto @relation("ItensDoCombo", fields: [comboId], references: [id], onDelete: Cascade)
+  produtoId  Int
+  produto    Produto @relation("ProdutoEmCombos", fields: [produtoId], references: [id])
+  quantidade Int     @default(1)
+
+  @@unique([comboId, produtoId])
+}
+
+model Cupom {
+  id         Int       @id @default(autoincrement())
+  codigo     String    @unique // sempre em maiúsculas
+  descricao  String?
+  percentual Decimal?  @db.Decimal(5, 2)
+  valor      Decimal?  @db.Decimal(10, 2)
+  minimo     Decimal   @default(0) @db.Decimal(10, 2) // consumo mínimo para valer
+  validade   DateTime?
+  limiteUsos Int?
+  usos       Int       @default(0)
+  ativo      Boolean   @default(true)
+  criadoEm   DateTime  @default(now())
+
+  contas Conta[]
+}
+
+// ---------- Clientes e fidelidade ----------
+
+model Cliente {
+  id         Int       @id @default(autoincrement())
+  nome       String
+  telefone   String    @unique // só dígitos
+  email      String?
+  nascimento DateTime? @db.Date
+  pontos     Int       @default(0)
+  observacao String?
+  criadoEm   DateTime  @default(now())
+
+  contas     Conta[]
+  movimentos MovimentoPontos[]
+}
+
+model MovimentoPontos {
+  id        Int      @id @default(autoincrement())
+  clienteId Int
+  cliente   Cliente  @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  contaId   Int?
+  pontos    Int // positivo ganha, negativo usa
+  motivo    String
+  criadoEm  DateTime @default(now())
+
+  @@index([clienteId, criadoEm])
+}
+
+// ---------- Avaliação do cliente ----------
+
+model Avaliacao {
+  id              Int      @id @default(autoincrement())
+  contaId         Int      @unique
+  conta           Conta    @relation(fields: [contaId], references: [id])
+  mesaId          Int
+  garcomId        Int? // quem recebeu a conta
+  notaComida      Int // 1 a 5
+  notaAtendimento Int // 1 a 5
+  comentario      String?
+  criadoEm        DateTime @default(now())
+
+  @@index([criadoEm])
+  @@index([garcomId])
+}
+
+// ---------- Setores de preparo (cozinha, bar, sobremesas) ----------
+
+model Setor {
+  id    Int     @id @default(autoincrement())
+  nome  String  @unique
+  cor   String  @default("#2563eb")
+  ativo Boolean @default(true)
+  ordem Int     @default(0)
+
+  categorias Categoria[]
+  usuarios   Usuario[]
+  pedidos    PedidoSetor[]
+}
+
+// A parte de um pedido que cabe a um setor, com a situação dessa parte.
+model PedidoSetor {
+  id           Int          @id @default(autoincrement())
+  pedidoId     Int
+  pedido       Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  setorId      Int
+  setor        Setor        @relation(fields: [setorId], references: [id], onDelete: Cascade)
+  status       StatusPedido @default(NOVO)
+  atualizadoEm DateTime     @updatedAt
+
+  @@unique([pedidoId, setorId])
+}
+
 // ---------- Log de atividades ----------
 
 // Um registro por atividade na plataforma. Visível só para o GESTOR.
@@ -749,6 +925,13 @@ model ConfiguracaoPlataforma {
   pixChave              String?
   pixNome               String? // nome de quem recebe, como aparece no aplicativo do banco
   pixCidade             String?
+
+  // Fidelidade: pontos ganhos por real pago e valor de cada ponto na conta.
+  fidelidadeAtiva Boolean  @default(false)
+  pontosPorReal   Decimal  @default(1) @db.Decimal(6, 2)
+  valorDoPonto    Decimal  @default(0.05) @db.Decimal(8, 4)
+  // Idiomas do cardápio além do português.
+  idiomas         String[] @default(["pt"])
 
   // Nota fiscal.
   fiscalProvedor            ProvedorFiscal @default(NENHUM)

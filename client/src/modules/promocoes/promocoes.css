@@ -1,0 +1,74 @@
+/* Promoções e cupons: só variáveis do tema, funciona no celular (360 px). */
+
+.promocoes-texto {
+  color: var(--cor-texto-suave);
+  margin: 0.5rem 0;
+  overflow-wrap: anywhere;
+}
+
+.promocoes-grade {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 560px) {
+  .promocoes-grade {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.promocoes-grade .campo-completo {
+  grid-column: 1 / -1;
+}
+
+.promocoes-dias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+.promocoes-dia {
+  min-width: 52px;
+  min-height: 40px;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.promocoes-dia:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.promocoes-dia[aria-pressed="true"] {
+  background: var(--cor-primaria-suave);
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+}
+
+.promocoes-atalhos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+}
+
+.promocoes-codigo {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}
+
+.promocoes-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

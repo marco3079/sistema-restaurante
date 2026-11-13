@@ -1,6 +1,7 @@
 import type { Prisma, TipoMovimento } from '@prisma/client';
 import { prisma } from './prisma';
 import { HttpError } from './erros';
+import { itensParaBaixa } from './combos';
 
 // Estoque por produto. Só vale para os produtos com o controle ligado.
 // Cada pedido baixa o saldo; ao zerar, o item esgota sozinho; cancelar o pedido devolve.
@@ -62,12 +63,20 @@ export async function baixarPorPedido(
 // Pedido cancelado: os itens com controle voltam para o estoque.
 export async function devolverPorPedido(pedidoId: number): Promise<void> {
   const itens = await prisma.itemPedido.findMany({
-    where: { pedidoId, produto: { controlaEstoque: true } },
+    where: { pedidoId },
     select: { produtoId: true, quantidade: true },
   });
   if (itens.length === 0) return;
   await prisma.$transaction(async (tx) => {
-    for (const item of itens) {
+    // Mesma conta da baixa: combos trocados pelos componentes (e o próprio combo).
+    const baixados = await itensParaBaixa(tx, itens);
+    const controlados = await tx.produto.findMany({
+      where: { id: { in: baixados.map((i) => i.produtoId) }, controlaEstoque: true },
+      select: { id: true },
+    });
+    const idsControlados = new Set(controlados.map((p) => p.id));
+    for (const item of baixados) {
+      if (!idsControlados.has(item.produtoId)) continue;
       await movimentar(tx, item.produtoId, 'DEVOLUCAO', item.quantidade, `Pedido #${pedidoId} cancelado`, null);
     }
   });

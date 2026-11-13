@@ -985,3 +985,292 @@
   font-size: 0.92rem;
   color: var(--cor-texto-suave);
 }
+
+/* ---------- Preço com promoção ---------- */
+
+.preco-bloco {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.5rem;
+  min-width: 0;
+}
+
+.preco-original {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.preco-promocao {
+  padding: 0.12rem 0.5rem;
+  border-radius: 999px;
+  background: var(--cor-verde-suave);
+  color: var(--cor-verde);
+  font-size: 0.74rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mesa-cli-recomendado > .preco-bloco {
+  margin-top: auto;
+  padding: 0 0.2rem;
+}
+
+/* ---------- Opções do produto (lista e sacola) ---------- */
+
+.mesa-cli-acao-opcoes {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mesa-cli-na-sacola {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cor-primaria);
+}
+
+.mesa-cli-sacola-opcoes {
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.mesa-cli-pedido-opcoes {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Idioma ---------- */
+
+.mesa-cli-idioma {
+  position: relative;
+  flex: none;
+}
+
+.mesa-cli-idioma-botao {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mesa-cli-idioma-botao:focus-visible,
+.mesa-cli-idioma-opcao:focus-visible,
+.mesa-cli-estrela:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.mesa-cli-idioma-opcoes {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 150px;
+  padding: 0.35rem;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  box-shadow: var(--sombra);
+}
+
+.mesa-cli-idioma-opcao {
+  min-height: 44px;
+  padding: 0.3rem 0.7rem;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--cor-texto);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mesa-cli-idioma-opcao[aria-pressed='true'] {
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria);
+  font-weight: 800;
+}
+
+/* ---------- Escolha de opções no perfil do prato ---------- */
+
+.prato-combo {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--cor-texto);
+}
+
+.prato-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prato-grupo {
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  min-width: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+}
+
+.prato-grupo-titulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  padding: 0 0.25rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.prato-grupo-regra {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--cor-primaria);
+}
+
+.prato-opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.3rem 0.25rem;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.prato-opcao input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cor-primaria);
+}
+
+.prato-opcao-cheia {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.prato-opcao-nome {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prato-opcao-preco {
+  flex: none;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.prato-falta {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--cor-laranja);
+}
+
+.prato-total-item {
+  margin: 0;
+  font-weight: 800;
+  color: var(--cor-primaria);
+}
+
+/* ---------- Avaliação ---------- */
+
+.mesa-cli-avaliar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.mesa-cli-avaliar .mesa-cli-secao-titulo {
+  margin: 0;
+}
+
+.mesa-cli-avaliar-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.mesa-cli-avaliar-rotulo {
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.mesa-cli-estrelas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+}
+
+.mesa-cli-estrela {
+  display: grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  cursor: pointer;
+}
+
+.mesa-cli-estrela-ativa {
+  color: var(--cor-laranja);
+}
+
+.mesa-cli-avaliar-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Cabeçalho em telas estreitas: com o botão de idioma, o nome do restaurante precisa de mais espaço. */
+
+@media (max-width: 430px) {
+  .mesa-cli-marca {
+    gap: 0.5rem;
+  }
+
+  .mesa-cli-logo {
+    width: 36px;
+    height: 36px;
+  }
+
+  .mesa-cli-nome {
+    font-size: 0.92rem;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}

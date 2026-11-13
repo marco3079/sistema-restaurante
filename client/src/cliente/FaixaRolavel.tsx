@@ -5,7 +5,7 @@ import { Icone } from '../ui/icones';
 // Faixa que rola para os lados e deixa isso claro: setas para avançar e voltar,
 // esmaecido na borda quando há mais itens, e arrastar com o dedo ou com o mouse.
 // Com o dedo, a rolagem é a do próprio celular; com o mouse, o arrasto é tratado aqui.
-export function FaixaRolavel({ rotulo, children }: { rotulo: string; children: ReactNode }) {
+export function FaixaRolavel({ rotulo, dica, children }: { rotulo: string; dica?: string; children: ReactNode }) {
   const lista = useRef<HTMLDivElement>(null);
   const [podeVoltar, setPodeVoltar] = useState(false);
   const [podeAvancar, setPodeAvancar] = useState(false);
@@ -116,7 +116,7 @@ export function FaixaRolavel({ rotulo, children }: { rotulo: string; children: R
       )}
       {podeAvancar && !podeVoltar && (
         <p className="mesa-cli-faixa-dica" aria-hidden="true">
-          Arraste para o lado para ver mais
+          {dica ?? 'Arraste para o lado para ver mais'}
           <Icone nome="seta-direita" tamanho={14} />
         </p>
       )}

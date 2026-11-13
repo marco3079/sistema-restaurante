@@ -26,6 +26,8 @@ import type { AcaoMenu } from '../../ui';
 import { Icone } from '../../ui/icones';
 import { Indicador, NovoPedido } from '../pedidos/comum';
 import { ContaDaMesa } from './Conta';
+import { JuntarMesas, TransferirItens, TrocarMesa } from './Transferir';
+import './mesas.css';
 
 // ---------- Cadastro da mesa (gestor) ----------
 
@@ -201,11 +203,15 @@ type Janela =
   | { tipo: 'form'; mesa: MesaDTO | null }
   | { tipo: 'qr'; mesa: MesaDTO }
   | { tipo: 'conta'; mesa: MesaDTO }
-  | { tipo: 'pedido'; mesa: MesaDTO };
+  | { tipo: 'pedido'; mesa: MesaDTO }
+  | { tipo: 'trocar'; mesa: MesaDTO }
+  | { tipo: 'juntar'; mesa: MesaDTO }
+  | { tipo: 'transferir'; mesa: MesaDTO };
 
 export function Mesas() {
   const { usuario } = useAuth();
   const gestor = usuario?.perfil === 'GESTOR';
+  const garcom = usuario?.perfil === 'GARCOM';
   const mesas = useDados<MesaDTO[]>('/mesas');
   const areas = useDados<AreaDTO[]>('/areas');
   const [janela, setJanela] = useState<Janela | null>(null);
@@ -235,6 +241,15 @@ export function Mesas() {
     } catch (e) {
       setErroAcao(mensagemErro(e));
     }
+  }
+
+  // Ações de uma mesa ocupada (com conta): trocar, juntar e transferir itens. Gestor e garçom.
+  function acoesDaConta(m: MesaDTO): AcaoMenu[] {
+    return [
+      { rotulo: 'Trocar de mesa', icone: 'enviar', aoClicar: () => setJanela({ tipo: 'trocar', mesa: m }) },
+      { rotulo: 'Juntar com outra mesa', icone: 'somar', aoClicar: () => setJanela({ tipo: 'juntar', mesa: m }) },
+      { rotulo: 'Transferir itens', icone: 'lista', aoClicar: () => setJanela({ tipo: 'transferir', mesa: m }) },
+    ];
   }
 
   function acoesDoGestor(m: MesaDTO): AcaoMenu[] {
@@ -321,6 +336,10 @@ export function Mesas() {
           ]
             .filter(Boolean)
             .join(' ');
+          const acoes: AcaoMenu[] = [
+            ...(ocupada && (gestor || garcom) ? acoesDaConta(m) : []),
+            ...(gestor ? acoesDoGestor(m) : []),
+          ];
           return (
             <article className={classes} key={m.id}>
               <div className="mesa-topo">
@@ -331,7 +350,7 @@ export function Mesas() {
                     <span className="mesa-detalhe">{m.lugares} lugares</span>
                   </div>
                 </div>
-                {gestor && <MenuAcoes rotulo={`Ações da mesa ${m.numero}`} acoes={acoesDoGestor(m)} />}
+                {acoes.length > 0 && <MenuAcoes rotulo={`Ações da mesa ${m.numero}`} acoes={acoes} />}
               </div>
 
               <div className="mesa-linha">
@@ -449,6 +468,42 @@ export function Mesas() {
           mesa={janela.mesa}
           aoFechar={() => setJanela(null)}
           aoPago={(mensagem) => {
+            setAviso(mensagem);
+            mesas.recarregar();
+          }}
+        />
+      )}
+      {janela?.tipo === 'trocar' && (
+        <TrocarMesa
+          mesa={janela.mesa}
+          mesas={lista}
+          aoFechar={() => setJanela(null)}
+          aoFeito={(mensagem) => {
+            setJanela(null);
+            setAviso(mensagem);
+            mesas.recarregar();
+          }}
+        />
+      )}
+      {janela?.tipo === 'juntar' && (
+        <JuntarMesas
+          mesa={janela.mesa}
+          mesas={lista}
+          aoFechar={() => setJanela(null)}
+          aoFeito={(mensagem) => {
+            setJanela(null);
+            setAviso(mensagem);
+            mesas.recarregar();
+          }}
+        />
+      )}
+      {janela?.tipo === 'transferir' && (
+        <TransferirItens
+          mesa={janela.mesa}
+          mesas={lista}
+          aoFechar={() => setJanela(null)}
+          aoFeito={(mensagem) => {
+            setJanela(null);
             setAviso(mensagem);
             mesas.recarregar();
           }}

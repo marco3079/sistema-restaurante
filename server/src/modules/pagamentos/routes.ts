@@ -451,6 +451,13 @@ router.post(
 
 const periodoSchema = z.object({ dias: z.coerce.number().int().min(1).max(365).optional() });
 
+// Nota média do atendimento (uma casa decimal); sem avaliações = null.
+function notaDoAtendimento(avaliacoes: { notaAtendimento: number }[]): number | null {
+  if (avaliacoes.length === 0) return null;
+  const soma = avaliacoes.reduce((s, a) => s + a.notaAtendimento, 0);
+  return Math.round((soma / avaliacoes.length) * 10) / 10;
+}
+
 router.get(
   '/desempenho',
   permitir('GESTOR'),
@@ -459,7 +466,7 @@ router.get(
     // "1 dia" é hoje; "7 dias" é hoje e os seis dias anteriores.
     const desde = new Date(inicioDoDia().getTime() - (dias - 1) * 24 * 60 * 60 * 1000);
 
-    const [usuarios, pedidos, pagamentos] = await Promise.all([
+    const [usuarios, pedidos, pagamentos, avaliacoes] = await Promise.all([
       prisma.usuario.findMany({ select: { id: true, nome: true, perfil: true, ativo: true, foto: true } }),
       prisma.pedido.groupBy({
         by: ['garcomId'],
@@ -478,11 +485,17 @@ router.get(
           maquinetaId: true,
         },
       }),
+      // Avaliações feitas pelos clientes no período (a nota do atendimento vai para quem recebeu a conta).
+      prisma.avaliacao.findMany({
+        where: { criadoEm: { gte: desde } },
+        select: { garcomId: true, notaAtendimento: true },
+      }),
     ]);
 
     const linhas = usuarios.map((u) => {
       const doPedido = pedidos.find((p) => p.garcomId === u.id);
       const recebidos = pagamentos.filter((p) => p.garcomId === u.id);
+      const avaliadas = avaliacoes.filter((a) => a.garcomId === u.id);
       const valorRecebido = recebidos.reduce((soma, p) => soma + Number(p.valor), 0);
       const porForma: Record<string, number> = {};
       for (const p of recebidos) {
@@ -501,6 +514,8 @@ router.get(
           Math.round(recebidos.filter((p) => p.maquinetaId !== null).reduce((s, p) => s + Number(p.valor), 0) * 100) / 100,
         valorMedioPorConta: recebidos.length > 0 ? Math.round((valorRecebido / recebidos.length) * 100) / 100 : 0,
         porForma,
+        avaliacoes: avaliadas.length,
+        notaAtendimento: notaDoAtendimento(avaliadas),
       };
     });
 
@@ -518,6 +533,8 @@ router.get(
         taxaServico: Math.round(pagamentos.reduce((soma, p) => soma + Number(p.valorServico), 0) * 100) / 100,
         gorjetas: Math.round(pagamentos.reduce((soma, p) => soma + Number(p.gorjeta), 0) * 100) / 100,
         pedidosAtendidos: visiveis.reduce((soma, l) => soma + l.pedidosAtendidos, 0),
+        avaliacoes: avaliacoes.length,
+        notaAtendimento: notaDoAtendimento(avaliacoes),
       },
       garcons: visiveis,
     });

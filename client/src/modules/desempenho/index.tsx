@@ -4,6 +4,7 @@ import type { RotaModulo } from '../../lib/rotas';
 import type { DesempenhoDTO } from '../../lib/restaurante';
 import { Avatar, Aviso, Carregando, Pagina, Tabela, formatarMoeda } from '../../ui';
 import { Indicador } from '../pedidos/comum';
+import { formatarNota } from '../../lib/avaliacoes';
 
 const PERIODOS: { dias: number; rotulo: string }[] = [
   { dias: 1, rotulo: 'Hoje' },
@@ -56,6 +57,12 @@ export function Desempenho() {
             <Indicador rotulo="Gorjetas" valor={formatarMoeda(d.totais.gorjetas)} cor="verde" icone="financeiro" />
             <Indicador rotulo="Pedidos atendidos" valor={String(d.totais.pedidosAtendidos)} cor="roxo" icone="pedidos" />
             <Indicador rotulo="Quem mais recebeu" valor={melhor?.usuario.nome ?? '—'} cor="laranja" icone="estrela" />
+            <Indicador
+              rotulo="Nota do atendimento"
+              valor={formatarNota(d.totais.notaAtendimento)}
+              cor="verde"
+              icone="estrela"
+            />
           </div>
 
           <Tabela
@@ -113,13 +120,24 @@ export function Desempenho() {
                 celula: (g) => <span className="sem-quebra">{formatarMoeda(g.valorMedioPorConta)}</span>,
               },
               { titulo: 'Por forma de pagamento', celula: (g) => formas(g.porForma) },
+              {
+                titulo: 'Nota do atendimento',
+                alinhar: 'direita',
+                celula: (g) =>
+                  g.notaAtendimento === null ? (
+                    '—'
+                  ) : (
+                    <span className="sem-quebra">{`${formatarNota(g.notaAtendimento)} (${g.avaliacoes})`}</span>
+                  ),
+              },
             ]}
           />
           <Aviso tipo="info">
             "Pedidos atendidos" conta os pedidos que a pessoa lançou ou assumiu. "Valor recebido" conta as contas que ela
             recebeu: no modo em que cada garçom tem a sua maquineta, vale o dono da maquineta; no modo compartilhado,
             vale quem cobrou. "Taxa de serviço" é a parte da taxa dentro do valor recebido; "Gorjetas" é o que o
-            cliente deu além da conta. As duas contam para quem recebeu.
+            cliente deu além da conta. As duas contam para quem recebeu. A nota do atendimento vem das avaliações que
+            os clientes fazem pelo cardápio da mesa depois de pagar; conta para quem recebeu a conta.
           </Aviso>
         </>
       )}

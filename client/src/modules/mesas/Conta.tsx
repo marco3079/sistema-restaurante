@@ -19,6 +19,7 @@ import {
 import type { ContaDTO, MaquinetasDTO, MesaDTO, NotaDTO, PagamentoDTO } from '../../lib/restaurante';
 import { Aviso, Botao, Caixa, Campo, Carregando, Modal, Selecao, Selo, formatarMoeda } from '../../ui';
 import { ListaItens, SeloStatus } from '../pedidos/comum';
+import { Descontos } from './Descontos';
 
 const INTERVALO_MAQUINETA_MS = 2000;
 
@@ -88,7 +89,13 @@ export function ContaDaMesa({
   const [fechada, setFechada] = useState<ContaDTO | null>(null);
   const [nota, setNota] = useState<NotaDTO | null>(null);
 
-  const dados = conta.dados;
+  // Conta trocada pela resposta de uma ação de desconto/cliente. Some quando a conta é buscada de novo.
+  const [contaAtual, setContaAtual] = useState<ContaDTO | null>(null);
+  useEffect(() => {
+    setContaAtual(null);
+  }, [conta.dados]);
+
+  const dados = contaAtual ?? conta.dados;
   const disponiveis = maquinetas.dados?.maquinetas.filter((m) => m.ativa) ?? [];
   const usaMaquineta = forma !== '' && forma !== 'Dinheiro' && disponiveis.length > 0;
   // Com uma só maquineta disponível, ela já vem escolhida (menos no Pix com a chave do restaurante).
@@ -250,6 +257,11 @@ export function ContaDaMesa({
   const percentual = exibida?.conta?.taxaPercentual ?? 0;
   const doc = documento ?? formatarDocumento(exibida?.conta?.cpfCnpjCliente ?? null);
   const numeroDePessoas = /^\d+$/.test(pessoas) ? Number(pessoas) : 0;
+  // Descontos da conta (campos novos podem faltar em respostas antigas).
+  const descontoCupom = exibida?.descontoCupom ?? 0;
+  const descontoPontos = exibida?.descontoPontos ?? 0;
+  const descontoManual = exibida?.descontoManual ?? 0;
+  const pontosUsados = exibida?.conta?.pontosUsados ?? 0;
 
   return (
     <Modal aberto titulo={`Conta · ${nomeDaMesa(mesa)}`} aoFechar={aoFechar}>
@@ -279,6 +291,27 @@ export function ContaDaMesa({
               <dt>Subtotal</dt>
               <dd>{formatarMoeda(exibida.subtotal)}</dd>
             </div>
+            {descontoCupom > 0 && (
+              <div className="mesas-desconto">
+                <dt>Cupom {exibida.conta?.cupom?.codigo ?? ''}</dt>
+                <dd>− {formatarMoeda(descontoCupom)}</dd>
+              </div>
+            )}
+            {descontoPontos > 0 && (
+              <div className="mesas-desconto">
+                <dt>Pontos ({pontosUsados})</dt>
+                <dd>− {formatarMoeda(descontoPontos)}</dd>
+              </div>
+            )}
+            {descontoManual > 0 && (
+              <div className="mesas-desconto">
+                <dt>
+                  Desconto
+                  {exibida.conta?.descontoMotivo ? ` (${exibida.conta.descontoMotivo})` : ''}
+                </dt>
+                <dd>− {formatarMoeda(descontoManual)}</dd>
+              </div>
+            )}
             {exibida.taxa > 0 && (
               <div>
                 <dt>Taxa de serviço ({percentual}%)</dt>
@@ -354,6 +387,11 @@ export function ContaDaMesa({
             </Botao>
           </div>
         </div>
+      )}
+
+      {/* Cupom, cliente, pontos e desconto: fora do formulário de cobrança (que é outro <form>). */}
+      {dados && dados.conta && pedidos.length > 0 && !pagamento && !fechada && !dados.pagamentoPendente && (
+        <Descontos mesaId={mesa.id} conta={dados} aoMudar={setContaAtual} />
       )}
 
       {/* Passo 1: ajustar a conta e escolher como o cliente vai pagar. */}

@@ -7,6 +7,7 @@ import type { ResultadoMaquineta } from './maquinetas';
 import { liberarParaLimpeza } from './mesas';
 import { contaAberta, valoresDaConta } from './contas';
 import { emitirSeAutomatico } from './fiscal';
+import { lerConfiguracao } from './email';
 
 // Conta da mesa e ciclo de cada pagamento (pendente, aprovado, recusado, cancelado).
 // A conta pode ser paga em partes: ela fecha quando os pagamentos aprovados cobrem o total.
@@ -93,6 +94,12 @@ export async function carregarConta(mesaId: number) {
           taxaPercentual: Number(conta.taxaPercentual),
           cpfCnpjCliente: conta.cpfCnpjCliente,
           abertaEm: conta.abertaEm.toISOString(),
+          descontoMotivo: conta.descontoMotivo,
+          pontosUsados: conta.pontosUsados,
+          cupom: conta.cupom ? { id: conta.cupom.id, codigo: conta.cupom.codigo, descricao: conta.cupom.descricao } : null,
+          cliente: conta.cliente
+            ? { id: conta.cliente.id, nome: conta.cliente.nome, telefone: conta.cliente.telefone, pontos: conta.cliente.pontos }
+            : null,
         }
       : null,
     pedidos: lista,
@@ -112,15 +119,46 @@ export async function fecharSeQuitada(contaId: number): Promise<boolean> {
   if (resumo.pedidos.length === 0 || resumo.restante > 0.004) return false;
   const agora = new Date();
   const formas = [...new Set(resumo.pagamentos.map((p) => p.formaPagamento))];
-  await prisma.$transaction([
-    prisma.pedido.updateMany({
+  // Uma transação interativa: o fechamento condicional (só uma chamada concorrente passa) e os
+  // pedidos e a mesa andam juntos. Se algo falhar, nada fica pela metade.
+  const fechou = await prisma.$transaction(async (tx) => {
+    const r = await tx.conta.updateMany({
+      where: { id: contaId, status: 'ABERTA' },
+      data: { status: 'FECHADA', fechadaEm: agora },
+    });
+    if (r.count === 0) return false; // outra chamada já fechou
+    await tx.pedido.updateMany({
       where: { contaId, pagoEm: null, status: { not: 'CANCELADO' } },
       data: { pagoEm: agora, formaPagamento: formas.length === 1 ? formas[0] : 'Dividido', status: 'ENTREGUE' },
-    }),
-    prisma.conta.update({ where: { id: contaId }, data: { status: 'FECHADA', fechadaEm: agora } }),
-    prisma.mesa.update({ where: { id: conta.mesaId }, data: { chamandoDesde: null } }),
-  ]);
+    });
+    await tx.mesa.update({ where: { id: conta.mesaId }, data: { chamandoDesde: null } });
+    return true;
+  });
+  if (!fechou) return false;
   await liberarParaLimpeza(conta.mesaId, true);
+  // Cupom e pontos de fidelidade. Uma falha aqui não desfaz o fechamento.
+  try {
+    if (conta.cupomId) {
+      await prisma.cupom.update({ where: { id: conta.cupomId }, data: { usos: { increment: 1 } } });
+    }
+    if (conta.clienteId) {
+      const configuracao = await lerConfiguracao();
+      if (configuracao.fidelidadeAtiva) {
+        const base = Math.round((resumo.subtotal - resumo.desconto) * 100) / 100;
+        const pontos = Math.floor(base * Number(configuracao.pontosPorReal));
+        if (pontos > 0) {
+          await prisma.$transaction([
+            prisma.cliente.update({ where: { id: conta.clienteId }, data: { pontos: { increment: pontos } } }),
+            prisma.movimentoPontos.create({
+              data: { clienteId: conta.clienteId, contaId, pontos, motivo: `Conta #${contaId}` },
+            }),
+          ]);
+        }
+      }
+    }
+  } catch (erro) {
+    console.error('Cupom ou fidelidade não atualizados ao fechar a conta', contaId, erro);
+  }
   // Com a emissão automática ligada, a nota sai em segundo plano.
   emitirSeAutomatico(contaId);
   return true;

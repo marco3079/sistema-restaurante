@@ -8,6 +8,56 @@ export interface CategoriaDTO {
   ordem: number;
   ativa: boolean;
   produtos: number;
+  // Setor de preparo da categoria (cozinha, bar, sobremesas); null = sem setor.
+  setorId: number | null;
+  traducoes: Traducoes<{ nome?: string }> | null;
+}
+
+// Textos do produto em outro idioma (en, es). Campo vazio = usa o português.
+export type TraducaoProduto = {
+  nome?: string;
+  descricao?: string;
+  detalhes?: string;
+  ingredientes?: string;
+  porcao?: string;
+  alergenicos?: string;
+};
+
+export type Traducoes<T> = { en?: T; es?: T };
+
+// Opção de um grupo (ex.: "Bacon", "Mal passado") e o acréscimo no preço.
+export interface OpcaoDTO {
+  id: number;
+  nome: string;
+  precoExtra: number;
+  ativa: boolean;
+}
+
+// Grupo de opções do prato: quantas o cliente precisa escolher (mínimo) e quantas pode (máximo).
+export interface GrupoOpcaoDTO {
+  id: number;
+  nome: string;
+  minimo: number;
+  maximo: number;
+  opcoes: OpcaoDTO[];
+}
+
+// Opção escolhida que vai no item do pedido.
+export interface OpcaoEscolhidaDTO {
+  grupo: string;
+  opcao: string;
+  precoExtra: number;
+}
+
+// Setor de preparo (cozinha, bar, sobremesas).
+export interface SetorDTO {
+  id: number;
+  nome: string;
+  cor: string;
+  ativo: boolean;
+  ordem: number;
+  categorias: number;
+  usuarios: { id: number; nome: string }[];
 }
 
 export interface Nutricao {
@@ -78,6 +128,15 @@ export interface ProdutoDTO extends FichaProduto {
   estoqueMinimo: number;
   ncm: string | null;
   cfop: string | null;
+  // Preço de venda agora (com promoção) e o nome da promoção que vale.
+  precoAtual: number;
+  promocao: string | null;
+  // Combo: os produtos que vêm nele.
+  combo: boolean;
+  comboItens: { produtoId: number; nome: string; quantidade: number }[];
+  // Adicionais e opções do prato.
+  grupos: GrupoOpcaoDTO[];
+  traducoes: Traducoes<TraducaoProduto> | null;
 }
 
 export interface MesaDTO {
@@ -130,6 +189,10 @@ export interface ItemPedidoDTO {
   precoUnitario: number;
   quantidade: number;
   observacao: string | null;
+  // Opções escolhidas, preço de tabela quando havia promoção e setor do item.
+  opcoes?: OpcaoEscolhidaDTO[];
+  precoOriginal?: number | null;
+  setorId?: number | null;
 }
 
 export interface PedidoDTO {
@@ -146,6 +209,8 @@ export interface PedidoDTO {
   criadoEm: string;
   atualizadoEm: string;
   itens: ItemPedidoDTO[];
+  // Partes do pedido por setor (cozinha, bar...) e a situação de cada uma.
+  setores?: { setorId: number; nome: string; cor: string; status: StatusPedido }[];
 }
 
 // Conta aberta da mesa. Pode ser paga em partes: `restante` é o que ainda falta.
@@ -157,9 +222,18 @@ export interface ContaDTO {
     taxaPercentual: number;
     cpfCnpjCliente: string | null;
     abertaEm: string;
+    descontoMotivo: string | null;
+    pontosUsados: number;
+    cupom: { id: number; codigo: string; descricao: string | null } | null;
+    cliente: { id: number; nome: string; telefone: string; pontos: number } | null;
   } | null;
   pedidos: PedidoDTO[];
   subtotal: number;
+  // Descontos: total e de cada origem (cupom, pontos e manual).
+  desconto: number;
+  descontoCupom: number;
+  descontoPontos: number;
+  descontoManual: number;
   taxa: number;
   total: number;
   pago: number;
@@ -308,6 +382,9 @@ export interface DesempenhoDTO {
     taxaServico: number;
     gorjetas: number;
     pedidosAtendidos: number;
+    // Avaliações dos clientes no período e a média da nota do atendimento (null sem avaliações).
+    avaliacoes: number;
+    notaAtendimento: number | null;
   };
   garcons: {
     usuario: { id: number; nome: string; perfil: string; ativo: boolean; foto: string | null };
@@ -320,6 +397,8 @@ export interface DesempenhoDTO {
     recebidoNaMaquineta: number;
     valorMedioPorConta: number;
     porForma: Record<string, number>;
+    avaliacoes: number;
+    notaAtendimento: number | null;
   }[];
 }
 

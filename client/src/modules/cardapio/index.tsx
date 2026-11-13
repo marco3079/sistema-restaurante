@@ -1,11 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import type { RotaModulo } from '../../lib/rotas';
 import { NUTRIENTES, lerNumero, lerPreco, mensagemErro, precoParaCampo } from '../../lib/restaurante';
-import type { CategoriaDTO, Nutricao, ProdutoDTO } from '../../lib/restaurante';
+import type { CategoriaDTO, Nutricao, ProdutoDTO, SetorDTO } from '../../lib/restaurante';
 import { PerfilDoPrato } from '../../cliente/PerfilDoPrato';
 import {
   Abas,
@@ -14,6 +14,7 @@ import {
   Botao,
   Caixa,
   Campo,
+  Cartao,
   Carregando,
   MenuAcoes,
   Modal,
@@ -23,9 +24,29 @@ import {
   Tabela,
   formatarMoeda,
 } from '../../ui';
-import type { AcaoMenu } from '../../ui';
+import type { AcaoMenu, ColunaTabela } from '../../ui';
 import { Icone } from '../../ui/icones';
 import { Indicador } from '../pedidos/comum';
+import { OpcoesProduto } from './Opcoes';
+import type { CampoTraducao, RascunhoTraducoes } from './Traducoes';
+import { Traducoes, montarTraducoes, mudarTraducao, rascunhoTraducoes } from './Traducoes';
+import './cardapio.css';
+
+const CAMPOS_PRODUTO: CampoTraducao[] = [
+  { chave: 'nome', rotulo: 'Nome' },
+  { chave: 'descricao', rotulo: 'Descrição curta (aparece na lista)', linhas: 2 },
+  { chave: 'detalhes', rotulo: 'Apresentação do prato', linhas: 3 },
+  { chave: 'ingredientes', rotulo: 'Ingredientes (separados por vírgula)', linhas: 2 },
+  { chave: 'porcao', rotulo: 'Porção' },
+  { chave: 'alergenicos', rotulo: 'Alergênicos' },
+];
+
+const CAMPOS_CATEGORIA: CampoTraducao[] = [{ chave: 'nome', rotulo: 'Nome' }];
+
+// Quantos opções o produto tem somando todos os grupos.
+function totalDeOpcoes(produto: ProdutoDTO): number {
+  return (produto.grupos ?? []).reduce((total, grupo) => total + grupo.opcoes.length, 0);
+}
 
 // ---------- Imagem do produto ----------
 
@@ -120,14 +141,22 @@ function CampoImagem({
 
 // ---------- Produto ----------
 
+// Linha do combo: produto (id como texto, vazio = não escolhido) e quantidade digitada.
+interface LinhaCombo {
+  produtoId: string;
+  quantidade: string;
+}
+
 function FormProduto({
   produto,
   categorias,
+  produtos,
   aoFechar,
   aoSalvo,
 }: {
   produto: ProdutoDTO | null;
   categorias: CategoriaDTO[];
+  produtos: ProdutoDTO[];
   aoFechar: () => void;
   aoSalvo: (mensagem: string) => void;
 }) {
@@ -157,8 +186,21 @@ function FormProduto({
   const [estoqueMinimo, setEstoqueMinimo] = useState(String(produto?.estoqueMinimo ?? 0));
   const [ncm, setNcm] = useState(produto?.ncm ?? '');
   const [cfop, setCfop] = useState(produto?.cfop ?? '');
+  const [combo, setCombo] = useState(produto?.combo ?? false);
+  const [linhasCombo, setLinhasCombo] = useState<LinhaCombo[]>(() =>
+    (produto?.comboItens ?? []).map((item) => ({ produtoId: String(item.produtoId), quantidade: String(item.quantidade) })),
+  );
+  const [traducoes, setTraducoes] = useState<RascunhoTraducoes>(() =>
+    rascunhoTraducoes(CAMPOS_PRODUTO, produto?.traducoes),
+  );
+  // Só produtos que podem entrar num combo: não são combo e não são o próprio.
+  const candidatos = produtos.filter((p) => !p.combo && p.id !== produto?.id);
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  function mudarLinhaCombo(indice: number, mudanca: Partial<LinhaCombo>) {
+    setLinhasCombo((atual) => atual.map((linha, i) => (i === indice ? { ...linha, ...mudanca } : linha)));
+  }
 
   async function enviar(e: FormEvent) {
     e.preventDefault();
@@ -195,6 +237,21 @@ function FormProduto({
       }
       tabela[n.chave] = lido;
     }
+    const itensCombo: { produtoId: number; quantidade: number }[] = [];
+    if (combo) {
+      for (const linha of linhasCombo) {
+        const quantidadeCombo = Number(linha.quantidade.trim());
+        if (!linha.produtoId) {
+          setErro('Escolha o produto de cada linha do combo.');
+          return;
+        }
+        if (!Number.isInteger(quantidadeCombo) || quantidadeCombo < 1 || quantidadeCombo > 20) {
+          setErro('A quantidade de cada produto do combo vai de 1 a 20.');
+          return;
+        }
+        itensCombo.push({ produtoId: Number(linha.produtoId), quantidade: quantidadeCombo });
+      }
+    }
     setEnviando(true);
     try {
       const corpo = {
@@ -215,6 +272,9 @@ function FormProduto({
         estoqueMinimo: minimo,
         ncm: ncm.trim() || null,
         cfop: cfop.trim() || null,
+        combo,
+        comboItens: combo ? itensCombo : [],
+        traducoes: montarTraducoes(CAMPOS_PRODUTO, traducoes),
       };
       if (produto) {
         await api.put(`/produtos/${produto.id}`, corpo);
@@ -304,6 +364,59 @@ function FormProduto({
           </div>
         </fieldset>
 
+        <fieldset className="ficha-grupo">
+          <legend>Combo</legend>
+          <Caixa
+            rotulo="Este produto é um combo (vem com outros produtos)"
+            marcado={combo}
+            aoMudar={setCombo}
+          />
+          {combo && (
+            <>
+              <p className="cardapio-ajuda">
+                O preço do combo é o deste cadastro. Ao vender, o estoque dos produtos do combo é baixado.
+              </p>
+              {linhasCombo.map((linha, indice) => (
+                <div key={indice} className="cardapio-combo-linha">
+                  <Selecao
+                    rotulo="Produto"
+                    valor={linha.produtoId}
+                    aoMudar={(valor) => mudarLinhaCombo(indice, { produtoId: valor })}
+                    opcoes={candidatos.map((p) => ({ valor: String(p.id), rotulo: p.nome }))}
+                  />
+                  <Campo
+                    rotulo="Quantidade"
+                    tipo="number"
+                    valor={linha.quantidade}
+                    aoMudar={(valor) => mudarLinhaCombo(indice, { quantidade: valor })}
+                  />
+                  <Botao
+                    variante="texto"
+                    aoClicar={() => setLinhasCombo((atual) => atual.filter((_, i) => i !== indice))}
+                  >
+                    Remover
+                  </Botao>
+                </div>
+              ))}
+              <Botao
+                variante="secundario"
+                aoClicar={() => setLinhasCombo((atual) => [...atual, { produtoId: '', quantidade: '1' }])}
+              >
+                Adicionar produto ao combo
+              </Botao>
+            </>
+          )}
+        </fieldset>
+
+        <fieldset className="ficha-grupo">
+          <legend>Traduções (opcional)</legend>
+          <Traducoes
+            campos={CAMPOS_PRODUTO}
+            valor={traducoes}
+            aoMudar={(idioma, chave, texto) => setTraducoes((atual) => mudarTraducao(atual, idioma, chave, texto))}
+          />
+        </fieldset>
+
         <Caixa rotulo="Disponível para pedido" marcado={disponivel} aoMudar={setDisponivel} />
         <Caixa
           rotulo="Recomendado da casa (aparece em destaque no cardápio do cliente)"
@@ -327,6 +440,7 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
   // null = fechado; { produto: null } = novo; { produto } = editar
   const [form, setForm] = useState<{ produto: ProdutoDTO | null } | null>(null);
   const [ficha, setFicha] = useState<ProdutoDTO | null>(null);
+  const [opcoesDe, setOpcoesDe] = useState<ProdutoDTO | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const produtos = useDados<ProdutoDTO[]>('/produtos');
@@ -367,6 +481,7 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
     return [
       verFicha,
       { rotulo: 'Editar', icone: 'lapis', aoClicar: () => setForm({ produto: p }) },
+      { rotulo: 'Opções e adicionais', icone: 'lista', aoClicar: () => setOpcoesDe(p) },
       alternar,
       {
         rotulo: p.recomendado ? 'Tirar dos recomendados' : 'Pôr nos recomendados',
@@ -454,6 +569,16 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
                           <span className="oculto">Recomendado da casa</span>
                         </span>
                       )}
+                      {(p.combo || (p.grupos ?? []).length > 0) && (
+                        <span className="cardapio-selos">
+                          {p.combo && <Selo cor="azul">Combo</Selo>}
+                          {(p.grupos ?? []).length > 0 && (
+                            <Selo cor="cinza">
+                              {totalDeOpcoes(p)} {totalDeOpcoes(p) === 1 ? 'opção' : 'opções'}
+                            </Selo>
+                          )}
+                        </span>
+                      )}
                     </span>
                     {p.descricao && <span className="produto-descricao">{p.descricao}</span>}
                   </span>
@@ -464,7 +589,16 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
             {
               titulo: 'Preço',
               alinhar: 'direita',
-              celula: (p) => <span className="sem-quebra">{formatarMoeda(p.preco)}</span>,
+              celula: (p) =>
+                p.promocao ? (
+                  <span className="cardapio-preco">
+                    <span className="sem-quebra">{formatarMoeda(p.precoAtual)}</span>
+                    <s className="sem-quebra cardapio-preco-tabela">{formatarMoeda(p.preco)}</s>
+                    <Selo cor="verde">{p.promocao}</Selo>
+                  </span>
+                ) : (
+                  <span className="sem-quebra">{formatarMoeda(p.preco)}</span>
+                ),
             },
             {
               titulo: 'Situação',
@@ -486,7 +620,19 @@ function AbaProdutos({ podeEditar, categorias }: { podeEditar: boolean; categori
         <FormProduto
           produto={form.produto}
           categorias={categorias}
+          produtos={todos}
           aoFechar={() => setForm(null)}
+          aoSalvo={(mensagem) => {
+            setAviso(mensagem);
+            produtos.recarregar();
+          }}
+        />
+      )}
+
+      {opcoesDe && (
+        <OpcoesProduto
+          produto={opcoesDe}
+          aoFechar={() => setOpcoesDe(null)}
           aoSalvo={(mensagem) => {
             setAviso(mensagem);
             produtos.recarregar();
@@ -511,6 +657,12 @@ function FormCategoria({
   const [nome, setNome] = useState(categoria?.nome ?? '');
   const [ordem, setOrdem] = useState(String(categoria?.ordem ?? 0));
   const [ativa, setAtiva] = useState(categoria?.ativa ?? true);
+  const [setorId, setSetorId] = useState(categoria?.setorId ? String(categoria.setorId) : '');
+  const [traducoes, setTraducoes] = useState<RascunhoTraducoes>(() =>
+    rascunhoTraducoes(CAMPOS_CATEGORIA, categoria?.traducoes),
+  );
+  const setores = useDados<SetorDTO[]>('/setores');
+  const listaSetores = setores.dados ?? [];
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -524,7 +676,13 @@ function FormCategoria({
     }
     setEnviando(true);
     try {
-      const corpo = { nome: nome.trim(), ordem: posicao, ativa };
+      const corpo = {
+        nome: nome.trim(),
+        ordem: posicao,
+        ativa,
+        setorId: setorId ? Number(setorId) : null,
+        traducoes: montarTraducoes(CAMPOS_CATEGORIA, traducoes),
+      };
       if (categoria) {
         await api.put(`/categorias/${categoria.id}`, corpo);
         aoSalvo('Categoria atualizada.');
@@ -545,7 +703,26 @@ function FormCategoria({
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         <Campo rotulo="Nome" valor={nome} aoMudar={setNome} obrigatorio />
         <Campo rotulo="Ordem no cardápio (menor aparece primeiro)" tipo="number" valor={ordem} aoMudar={setOrdem} />
+        {listaSetores.length > 0 && (
+          <Selecao
+            rotulo="Setor de preparo"
+            valor={setorId}
+            aoMudar={setSetorId}
+            vazio="Nenhum (fila geral)"
+            opcoes={listaSetores.map((s) => ({ valor: String(s.id), rotulo: s.nome }))}
+          />
+        )}
         <Caixa rotulo="Aparece no cardápio do cliente" marcado={ativa} aoMudar={setAtiva} />
+        <details className="cardapio-detalhes">
+          <summary>Traduções do nome</summary>
+          <div className="cardapio-detalhes-corpo">
+            <Traducoes
+              campos={CAMPOS_CATEGORIA}
+              valor={traducoes}
+              aoMudar={(idioma, chave, texto) => setTraducoes((atual) => mudarTraducao(atual, idioma, chave, texto))}
+            />
+          </div>
+        </details>
         <Botao tipo="submit" desabilitado={enviando}>
           Salvar
         </Botao>{' '}
@@ -567,6 +744,18 @@ function AbaCategorias({
   const [form, setForm] = useState<{ categoria: CategoriaDTO | null } | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
+  // Inclui setores desativados, para a categoria mostrar o nome do setor que ela ainda tem.
+  const setores = useDados<SetorDTO[]>('/setores?todos=1');
+  const listaSetores = setores.dados ?? [];
+  const mostrarSetor = listaSetores.length > 0;
+  const colunaSetor: ColunaTabela<CategoriaDTO>[] = mostrarSetor
+    ? [
+        {
+          titulo: 'Setor',
+          celula: (c) => listaSetores.find((s) => s.id === c.setorId)?.nome ?? '—',
+        },
+      ]
+    : [];
 
   async function excluir(c: CategoriaDTO) {
     if (!window.confirm(`Excluir a categoria "${c.nome}"?`)) return;
@@ -596,6 +785,7 @@ function AbaCategorias({
         vazio="Nenhuma categoria cadastrada."
         colunas={[
           { titulo: 'Nome', celula: (c) => c.nome },
+          ...colunaSetor,
           { titulo: 'Ordem', celula: (c) => String(c.ordem) },
           { titulo: 'Produtos', celula: (c) => String(c.produtos) },
           {
@@ -628,7 +818,71 @@ function AbaCategorias({
           }}
         />
       )}
+
+      <CartaoIdiomas />
     </>
+  );
+}
+
+// ---------- Idiomas do cardápio do cliente ----------
+
+function CartaoIdiomas() {
+  const idiomas = useDados<{ idiomas: string[] }>('/cardapio/idiomas');
+  const [ingles, setIngles] = useState(false);
+  const [espanhol, setEspanhol] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+
+  // Quando a lista chega do servidor, marca o que já está ligado.
+  useEffect(() => {
+    if (!idiomas.dados) return;
+    setIngles(idiomas.dados.idiomas.includes('en'));
+    setEspanhol(idiomas.dados.idiomas.includes('es'));
+  }, [idiomas.dados]);
+
+  async function salvar() {
+    setAviso(null);
+    setErro(null);
+    setEnviando(true);
+    const lista = ['pt', ...(ingles ? ['en'] : []), ...(espanhol ? ['es'] : [])];
+    try {
+      await api.put('/cardapio/idiomas', { idiomas: lista });
+      setAviso('Idiomas do cardápio salvos.');
+      idiomas.recarregar();
+    } catch (e) {
+      setErro(mensagemErro(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <Cartao titulo="Idiomas do cardápio do cliente">
+      <p className="cardapio-ajuda">
+        Com outro idioma ligado, o cliente escolhe a língua no cardápio da mesa. O que não tiver tradução aparece em
+        português.
+      </p>
+      {aviso && <Aviso tipo="sucesso">{aviso}</Aviso>}
+      {erro && <Aviso tipo="erro">{erro}</Aviso>}
+      {idiomas.erro && <Aviso tipo="erro">{idiomas.erro}</Aviso>}
+      {idiomas.carregando && !idiomas.dados && <Carregando />}
+      {idiomas.dados && (
+        <>
+          <div className="cardapio-idiomas-caixas">
+            <label className="caixa">
+              <input type="checkbox" checked disabled />
+              <span>Português (sempre ligado)</span>
+            </label>
+            <Caixa rotulo="Inglês" marcado={ingles} aoMudar={setIngles} />
+            <Caixa rotulo="Espanhol" marcado={espanhol} aoMudar={setEspanhol} />
+          </div>
+          <Botao aoClicar={() => void salvar()} desabilitado={enviando}>
+            Salvar idiomas
+          </Botao>
+        </>
+      )}
+    </Cartao>
   );
 }
 

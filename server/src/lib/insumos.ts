@@ -1,6 +1,7 @@
 import type { Prisma, TipoMovimento } from '@prisma/client';
 import { prisma } from './prisma';
 import { HttpError } from './erros';
+import { itensParaBaixa } from './combos';
 
 // Insumos (matéria-prima) e ficha técnica. O saldo do insumo pode ficar negativo:
 // a venda não é barrada por falta de insumo. Quantidades são Decimal no banco (3 casas) e custo com 4.
@@ -119,7 +120,9 @@ export async function devolverInsumosPorPedido(pedidoId: number): Promise<void> 
   });
   if (itens.length === 0) return;
   await prisma.$transaction(async (tx) => {
-    const consumo = await consumoDasFichas(tx, itens);
+    // Mesma conta da baixa: combos trocados pelos componentes (e o próprio combo).
+    const baixados = await itensParaBaixa(tx, itens);
+    const consumo = await consumoDasFichas(tx, baixados);
     for (const [insumoId, quantidade] of consumo) {
       await movimentarInsumo(tx, insumoId, 'DEVOLUCAO', quantidade, `Pedido #${pedidoId} cancelado`, null);
     }

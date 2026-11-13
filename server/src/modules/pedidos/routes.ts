@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import type { Prisma } from '@prisma/client';
+import type { Prisma, StatusPedido } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
@@ -28,6 +28,14 @@ const equipeDosPedidos = permitir('GESTOR', 'GARCOM', 'COZINHA');
 
 const statusSchema = z.enum(['NOVO', 'EM_PREPARO', 'PRONTO', 'ENTREGUE', 'CANCELADO']);
 
+// Setor do usuário quando ele é da cozinha e tem setor; nulo nos demais casos.
+// Lido do banco a cada chamada.
+async function setorDaCozinha(usuarioId: number, perfil: string): Promise<number | null> {
+  if (perfil !== 'COZINHA') return null;
+  const usuario = await prisma.usuario.findUnique({ where: { id: usuarioId }, select: { setorId: true } });
+  return usuario?.setorId ?? null;
+}
+
 const filtroSchema = z.object({
   // andamento: fila (novo, em preparo, pronto). hoje: tudo de hoje. todos: os mais recentes.
   ver: z.enum(['andamento', 'hoje', 'todos']).optional(),
@@ -46,6 +54,16 @@ router.get(
     if (ver === 'hoje') where.criadoEm = { gte: inicioDoDia() };
     if (filtro.status) where.status = filtro.status;
     if (filtro.mesaId) where.mesaId = filtro.mesaId;
+    // Cozinha com setor vê só as partes do próprio setor.
+    const setorDoUsuario = await setorDaCozinha(req.usuario.id, req.usuario.perfil);
+    if (setorDoUsuario !== null) {
+      where.setores = {
+        some: {
+          setorId: setorDoUsuario,
+          ...(ver === 'andamento' ? { status: { in: STATUS_EM_ANDAMENTO } } : {}),
+        },
+      };
+    }
     const pedidos = await prisma.pedido.findMany({
       where,
       include: incluirPedido,
@@ -105,6 +123,53 @@ router.put(
       throw new HttpError(400, 'Este pedido foi cancelado. Lance um novo pedido.');
     }
     const perfil = req.usuario.perfil;
+    const setorDoUsuario = await setorDaCozinha(req.usuario.id, perfil);
+    if (setorDoUsuario !== null) {
+      // Cozinha com setor: muda só a parte do pedido que é do seu setor.
+      const parte = await prisma.pedidoSetor.findUnique({
+        where: { pedidoId_setorId: { pedidoId: id, setorId: setorDoUsuario } },
+        select: { status: true },
+      });
+      if (!parte) {
+        throw new HttpError(403, 'Este pedido não tem itens do seu setor');
+      }
+      const naoEntregue = atual.status !== 'ENTREGUE';
+      const preparo = status === 'EM_PREPARO' && parte.status === 'NOVO' && naoEntregue;
+      const pronto = status === 'PRONTO' && (parte.status === 'NOVO' || parte.status === 'EM_PREPARO') && naoEntregue;
+      if (!preparo && !pronto) {
+        throw new HttpError(403, 'A cozinha inicia o preparo e marca o pedido como pronto. O garçom entrega.');
+      }
+      const agora = new Date();
+      const pedido = await prisma.$transaction(async (tx) => {
+        // Trava a linha do pedido: dois setores marcando pronto ao mesmo tempo esperam um pelo outro.
+        await tx.$queryRaw`SELECT id FROM "Pedido" WHERE id = ${id} FOR UPDATE`;
+        await tx.pedidoSetor.update({
+          where: { pedidoId_setorId: { pedidoId: id, setorId: setorDoUsuario } },
+          data: { status },
+        });
+        // O pedido segue as partes: todas prontas -> PRONTO; todas novas -> NOVO; senão -> EM_PREPARO.
+        const partes = await tx.pedidoSetor.findMany({ where: { pedidoId: id }, select: { status: true } });
+        const novoStatus: StatusPedido = partes.every((p) => p.status === 'PRONTO')
+          ? 'PRONTO'
+          : partes.every((p) => p.status === 'NOVO')
+            ? 'NOVO'
+            : 'EM_PREPARO';
+        const horasDoPedido: { preparoIniciadoEm?: Date; prontoEm?: Date } = {};
+        if (novoStatus !== atual.status) {
+          if (novoStatus === 'EM_PREPARO') horasDoPedido.preparoIniciadoEm = agora;
+          if (novoStatus === 'PRONTO') {
+            horasDoPedido.prontoEm = agora;
+            if (atual.status === 'NOVO') horasDoPedido.preparoIniciadoEm = agora;
+          }
+        }
+        return tx.pedido.update({
+          where: { id },
+          data: { status: novoStatus, ...horasDoPedido },
+          include: incluirPedido,
+        });
+      });
+      return res.json(paraPedidoDTO(pedido));
+    }
     if (perfil === 'COZINHA') {
       const preparo = status === 'EM_PREPARO' && atual.status === 'NOVO';
       const pronto = status === 'PRONTO' && (atual.status === 'NOVO' || atual.status === 'EM_PREPARO');
@@ -134,15 +199,26 @@ router.put(
       if (atual.status === 'NOVO') horas.preparoIniciadoEm = agora;
     }
     if (status === 'ENTREGUE') horas.entregueEm = agora;
-    const pedido = await prisma.pedido.update({
-      where: { id },
-      data: {
-        status,
-        ...horas,
-        // O primeiro garçom (ou gestor) que mexe em um pedido do cliente passa a responder por ele.
-        garcomId: atual.garcomId ?? (perfil === 'COZINHA' ? null : req.usuario.id),
-      },
-      include: incluirPedido,
+    const pedido = await prisma.$transaction(async (tx) => {
+      // As partes por setor acompanham o pedido (antes de ler o pedido, para a resposta já vir com elas).
+      if (status === 'ENTREGUE' || status === 'CANCELADO') {
+        await tx.pedidoSetor.updateMany({ where: { pedidoId: id }, data: { status } });
+      } else if (status === 'EM_PREPARO') {
+        await tx.pedidoSetor.updateMany({ where: { pedidoId: id, status: 'NOVO' }, data: { status } });
+      } else if (status === 'PRONTO') {
+        await tx.pedidoSetor.updateMany({ where: { pedidoId: id }, data: { status } });
+      }
+      const atualizado = await tx.pedido.update({
+        where: { id },
+        data: {
+          status,
+          ...horas,
+          // O primeiro garçom (ou gestor) que mexe em um pedido do cliente passa a responder por ele.
+          garcomId: atual.garcomId ?? (perfil === 'COZINHA' ? null : req.usuario.id),
+        },
+        include: incluirPedido,
+      });
+      return atualizado;
     });
     if (status === 'CANCELADO') {
       // Os itens com controle de estoque voltam para o saldo.

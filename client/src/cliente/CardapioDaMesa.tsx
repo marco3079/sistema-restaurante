@@ -6,23 +6,23 @@ import { usePlataforma } from '../lib/plataforma';
 import { useTema } from '../lib/tema';
 import { useDados } from '../lib/useDados';
 import { useAtualizacao } from '../lib/useAtualizacao';
-import { STATUS_PEDIDO, horaCurta, mensagemErro, nomeDaMesa } from '../lib/restaurante';
-import type { FichaProduto, StatusPedido } from '../lib/restaurante';
-import { PerfilDoPrato } from './PerfilDoPrato';
+import { STATUS_PEDIDO, horaCurta, mensagemErro } from '../lib/restaurante';
+import type { StatusPedido } from '../lib/restaurante';
+import { PerfilDoPrato, PrecoDoPrato, gruposComOpcoes, grupoPendente, somaDasOpcoes } from './PerfilDoPrato';
+import type { OpcaoDoPrato, PratoDoPerfil } from './PerfilDoPrato';
+import { Avaliar } from './Avaliar';
+import type { ContaPendente } from './Avaliar';
 import { FaixaRolavel } from './FaixaRolavel';
-import { AreaTexto, Aviso, Botao, Campo, Carregando, Modal, Selo, formatarMoeda } from '../ui';
+import { idiomaDoNavegador, lerIdiomaSalvo, normalizarIdioma, salvarIdioma, textos } from './textos';
+import type { Idioma, Textos } from './textos';
+import { Aviso, Botao, Campo, AreaTexto, Carregando, Modal, Selo, formatarMoeda } from '../ui';
 import { Icone } from '../ui/icones';
 import './cliente.css';
 
 // Cardápio da mesa: página pública que o cliente abre pelo QR code. Sem login.
 
-interface ProdutoCliente extends FichaProduto {
+interface ProdutoCliente extends PratoDoPerfil {
   id: number;
-  nome: string;
-  descricao: string;
-  preco: number;
-  imagem: string | null;
-  disponivel: boolean;
   recomendado: boolean;
 }
 
@@ -31,6 +31,9 @@ interface CardapioDTO {
   origemRecomendados: 'CASA' | 'MAIS_PEDIDOS';
   mesa: { numero: number; nome: string | null; chamando: boolean };
   categorias: { id: number; nome: string; produtos: ProdutoCliente[] }[];
+  // Idiomas ativos do cardápio e o idioma usado nesta resposta (APIs antigas não mandam).
+  idiomas?: string[];
+  idioma?: string;
 }
 
 interface PedidoCliente {
@@ -40,12 +43,19 @@ interface PedidoCliente {
   observacao: string | null;
   total: number;
   criadoEm: string;
-  itens: { nomeProduto: string; precoUnitario: number; quantidade: number; observacao: string | null }[];
+  itens: {
+    nomeProduto: string;
+    precoUnitario: number;
+    quantidade: number;
+    observacao: string | null;
+    opcoes?: { grupo: string; opcao: string; precoExtra: number }[];
+  }[];
 }
 
 interface PedidosDTO {
   pedidos: PedidoCliente[];
   total: number;
+  desconto?: number;
   taxaPercentual?: number;
   taxa?: number;
   totalComTaxa?: number;
@@ -54,18 +64,33 @@ interface PedidosDTO {
   chamando: boolean;
 }
 
+interface AvaliacaoDTO {
+  pendente: ContaPendente | null;
+}
+
 type Sacola = Record<number, number>;
+
+// Produto com opções: cada combinação de opções diferente é uma linha da sacola.
+interface LinhaOpcoes {
+  chave: string;
+  produtoId: number;
+  opcoes: number[];
+  rotulos: string[];
+  extra: number;
+  quantidade: number;
+}
+
+interface LinhaAtual extends LinhaOpcoes {
+  produto: ProdutoCliente;
+}
 
 const QUANTIDADE_MAXIMA = 20;
 
-// O que cada situação quer dizer para quem está na mesa.
-const FRASE_STATUS: Record<StatusPedido, string> = {
-  NOVO: 'Recebido pelo restaurante',
-  EM_PREPARO: 'Sendo preparado',
-  PRONTO: 'Pronto, a caminho da mesa',
-  ENTREGUE: 'Entregue',
-  CANCELADO: 'Cancelado',
-};
+const NOME_IDIOMA: Record<Idioma, string> = { pt: 'Português', en: 'English', es: 'Español' };
+
+function chaveDaLinha(produtoId: number, opcoes: number[]): string {
+  return `${produtoId}:${[...opcoes].sort((a, b) => a - b).join(',')}`;
+}
 
 function lerSacola(chave: string): Sacola {
   try {
@@ -84,18 +109,53 @@ function lerSacola(chave: string): Sacola {
   }
 }
 
+function lerLinhas(chave: string): LinhaOpcoes[] {
+  try {
+    const bruto = window.sessionStorage.getItem(chave);
+    if (!bruto) return [];
+    const dados = JSON.parse(bruto) as unknown;
+    if (!Array.isArray(dados)) return [];
+    const linhas: LinhaOpcoes[] = [];
+    for (const item of dados as Partial<LinhaOpcoes>[]) {
+      if (!item || typeof item.produtoId !== 'number' || typeof item.quantidade !== 'number') continue;
+      if (!Array.isArray(item.opcoes)) continue;
+      const opcoes = item.opcoes.filter((id): id is number => typeof id === 'number');
+      const quantidade = Math.min(QUANTIDADE_MAXIMA, Math.floor(item.quantidade));
+      if (quantidade < 1) continue;
+      linhas.push({
+        chave: chaveDaLinha(item.produtoId, opcoes),
+        produtoId: item.produtoId,
+        opcoes,
+        rotulos: [],
+        extra: 0,
+        quantidade,
+      });
+    }
+    return linhas;
+  } catch {
+    return [];
+  }
+}
+
+// Soma em centavos para não acumular erro de ponto flutuante.
+function somaEmReais(itens: { valor: number; quantidade: number }[]): number {
+  return itens.reduce((soma, i) => soma + Math.round(i.valor * 100) * i.quantidade, 0) / 100;
+}
+
 function Quantidade({
   nome,
   valor,
   aoSomar,
+  t,
 }: {
   nome: string;
   valor: number;
   aoSomar: (delta: number) => void;
+  t: Textos;
 }) {
   return (
     <div className="mesa-cli-quantidade">
-      <button type="button" className="mesa-cli-passo" aria-label={`Tirar um ${nome}`} onClick={() => aoSomar(-1)}>
+      <button type="button" className="mesa-cli-passo" aria-label={t.tirarUm(nome)} onClick={() => aoSomar(-1)}>
         <Icone nome="menos" tamanho={16} />
       </button>
       <span className="mesa-cli-numero" aria-live="polite">
@@ -104,7 +164,7 @@ function Quantidade({
       <button
         type="button"
         className="mesa-cli-passo"
-        aria-label={`Adicionar um ${nome}`}
+        aria-label={t.adicionarUm(nome)}
         disabled={valor >= QUANTIDADE_MAXIMA}
         onClick={() => aoSomar(1)}
       >
@@ -118,15 +178,34 @@ export function CardapioDaMesa() {
   const { codigo = '' } = useParams();
   const { plataforma, logoSrc } = usePlataforma();
   const { temaEfetivo, alternar } = useTema();
-  const cardapio = useDados<CardapioDTO>(`/cliente/mesas/${encodeURIComponent(codigo)}`);
+  // Idioma escolhido pelo cliente (salvo no aparelho). Sem escolha, vale o do navegador.
+  const [idiomaEscolhido, setIdiomaEscolhido] = useState<Idioma | null>(() => lerIdiomaSalvo());
+  const [idiomaAberto, setIdiomaAberto] = useState(false);
+  const idiomaPedido: Idioma = idiomaEscolhido ?? idiomaDoNavegador();
+  const cardapio = useDados<CardapioDTO>(
+    `/cliente/mesas/${encodeURIComponent(codigo)}?idioma=${idiomaPedido}`,
+  );
   const pedidos = useDados<PedidosDTO>(`/cliente/mesas/${encodeURIComponent(codigo)}/pedidos`);
+  const avaliacao = useDados<AvaliacaoDTO>(`/cliente/mesas/${encodeURIComponent(codigo)}/avaliacao`);
+  // Idioma da tela: o que o servidor usou; antes de carregar, o que foi pedido.
+  const idioma: Idioma = normalizarIdioma(cardapio.dados?.idioma) ?? (cardapio.dados ? 'pt' : idiomaPedido);
+  const t = textos(idioma);
+  const idiomasAtivos = (cardapio.dados?.idiomas ?? [])
+    .map((i) => normalizarIdioma(i))
+    .filter((i): i is Idioma => i !== null);
   const chaveSacola = `restaurante.sacola.${codigo}`;
+  const chaveLinhas = `${chaveSacola}.opcoes`;
   const [sacola, setSacola] = useState<Sacola>(() => lerSacola(chaveSacola));
+  const [linhasOpcoes, setLinhasOpcoes] = useState<LinhaOpcoes[]>(() => lerLinhas(chaveLinhas));
   const [aba, setAba] = useState<'cardapio' | 'pedidos'>('cardapio');
   const [categoriaAtiva, setCategoriaAtiva] = useState<number | null>(null);
   const [sacolaAberta, setSacolaAberta] = useState(false);
   // Id do prato com o perfil aberto (o prato é lido da lista para refletir preço e disponibilidade atuais).
   const [pratoAberto, setPratoAberto] = useState<number | null>(null);
+  // Opções escolhidas no perfil do prato que está aberto.
+  const [escolhidas, setEscolhidas] = useState<number[]>([]);
+  // Nesta visita, "Agora não" ou um envio tiram o cartão de avaliação.
+  const [avaliacaoEncerrada, setAvaliacaoEncerrada] = useState(false);
   const [nomeCliente, setNomeCliente] = useState('');
   const [observacao, setObservacao] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -148,6 +227,14 @@ export function CardapioDaMesa() {
   }, [sacola, chaveSacola]);
 
   useEffect(() => {
+    try {
+      window.sessionStorage.setItem(chaveLinhas, JSON.stringify(linhasOpcoes));
+    } catch {
+      // Sem armazenamento, a sacola só vale até recarregar a página.
+    }
+  }, [linhasOpcoes, chaveLinhas]);
+
+  useEffect(() => {
     if (pedidos.dados) setChamando(pedidos.dados.chamando);
   }, [pedidos.dados]);
 
@@ -156,12 +243,46 @@ export function CardapioDaMesa() {
     [cardapio.dados],
   );
 
-  // Só conta o que ainda está no cardápio e disponível.
-  const linhas = Object.entries(sacola)
+  // Produtos sem opções: só contam o que ainda está no cardápio e disponível.
+  const linhasSimples = Object.entries(sacola)
     .map(([id, quantidade]) => ({ produto: produtos.get(Number(id)), quantidade }))
-    .filter((l): l is { produto: ProdutoCliente; quantidade: number } => Boolean(l.produto?.disponivel) && l.quantidade > 0);
-  const unidades = linhas.reduce((soma, l) => soma + l.quantidade, 0);
-  const total = linhas.reduce((soma, l) => soma + l.produto.preco * l.quantidade, 0);
+    .filter(
+      (l): l is { produto: ProdutoCliente; quantidade: number } =>
+        l.produto !== undefined &&
+        l.produto.disponivel &&
+        l.quantidade > 0 &&
+        gruposComOpcoes(l.produto).length === 0,
+    );
+
+  // Produtos com opções: o rótulo e o acréscimo vêm do cardápio atual; linha que perdeu uma opção some.
+  const linhasComOpcoes: LinhaAtual[] = linhasOpcoes.flatMap((linha) => {
+    const produto = produtos.get(linha.produtoId);
+    if (!produto?.disponivel) return [];
+    const grupos = gruposComOpcoes(produto);
+    const todas: OpcaoDoPrato[] = grupos.flatMap((g) => g.opcoes);
+    const achadas = linha.opcoes.map((id) => todas.find((o) => o.id === id));
+    if (achadas.some((o) => o === undefined)) return [];
+    return [
+      {
+        ...linha,
+        produto,
+        rotulos: achadas.map((o) => o?.nome ?? ''),
+        extra: somaDasOpcoes(grupos, linha.opcoes),
+      },
+    ];
+  });
+
+  const unidades =
+    linhasSimples.reduce((soma, l) => soma + l.quantidade, 0) +
+    linhasComOpcoes.reduce((soma, l) => soma + l.quantidade, 0);
+  const total = somaEmReais([
+    ...linhasSimples.map((l) => ({ valor: l.produto.preco, quantidade: l.quantidade })),
+    ...linhasComOpcoes.map((l) => ({ valor: l.produto.preco + l.extra, quantidade: l.quantidade })),
+  ]);
+
+  function naSacolaDe(produtoId: number): number {
+    return linhasComOpcoes.filter((l) => l.produtoId === produtoId).reduce((soma, l) => soma + l.quantidade, 0);
+  }
 
   function somar(produtoId: number, delta: number) {
     setSacola((atual) => {
@@ -173,26 +294,71 @@ export function CardapioDaMesa() {
     });
   }
 
+  // Com as opções escolhidas: a mesma combinação soma na linha; combinação nova vira outra linha.
+  function adicionarComOpcoes(produto: ProdutoCliente, opcoes: number[]) {
+    const ids = [...opcoes].sort((a, b) => a - b);
+    const chave = chaveDaLinha(produto.id, ids);
+    setLinhasOpcoes((atual) => {
+      if (atual.some((l) => l.chave === chave)) {
+        return atual.map((l) =>
+          l.chave === chave ? { ...l, quantidade: Math.min(QUANTIDADE_MAXIMA, l.quantidade + 1) } : l,
+        );
+      }
+      return [...atual, { chave, produtoId: produto.id, opcoes: ids, rotulos: [], extra: 0, quantidade: 1 }];
+    });
+  }
+
+  function alterarLinha(chave: string, delta: number) {
+    setLinhasOpcoes((atual) =>
+      atual.flatMap((l) => {
+        if (l.chave !== chave) return [l];
+        const quantidade = Math.max(0, Math.min(QUANTIDADE_MAXIMA, l.quantidade + delta));
+        return quantidade === 0 ? [] : [{ ...l, quantidade }];
+      }),
+    );
+  }
+
+  function abrirPrato(id: number) {
+    setEscolhidas([]);
+    setPratoAberto(id);
+  }
+
   function irParaCategoria(id: number) {
     setCategoriaAtiva(id);
     secoes.current.get(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function trocarAba(nova: 'cardapio' | 'pedidos') {
+    setAba(nova);
+    if (nova === 'pedidos') avaliacao.recarregar();
+  }
+
+  function escolherIdioma(novo: Idioma) {
+    setIdiomaEscolhido(novo);
+    salvarIdioma(novo);
+    setIdiomaAberto(false);
+  }
+
   async function enviarPedido(e: FormEvent) {
     e.preventDefault();
-    if (linhas.length === 0) return;
+    const itens = [
+      ...linhasSimples.map((l) => ({ produtoId: l.produto.id, quantidade: l.quantidade, opcoes: [] as number[] })),
+      ...linhasComOpcoes.map((l) => ({ produtoId: l.produto.id, quantidade: l.quantidade, opcoes: l.opcoes })),
+    ];
+    if (itens.length === 0) return;
     setErro(null);
     setEnviando(true);
     try {
       const pedido = await api.post<PedidoCliente>(`/cliente/mesas/${encodeURIComponent(codigo)}/pedidos`, {
-        itens: linhas.map((l) => ({ produtoId: l.produto.id, quantidade: l.quantidade })),
+        itens,
         nomeCliente: nomeCliente.trim() || null,
         observacao: observacao.trim() || null,
       });
       setSacola({});
+      setLinhasOpcoes([]);
       setObservacao('');
       setSacolaAberta(false);
-      setAviso(`Pedido #${pedido.id} enviado. Acompanhe por aqui.`);
+      setAviso(t.pedidoEnviado(pedido.id));
       setAba('pedidos');
       pedidos.recarregar();
       window.scrollTo({ top: 0 });
@@ -209,13 +375,13 @@ export function CardapioDaMesa() {
     try {
       await api.post(`/cliente/mesas/${encodeURIComponent(codigo)}/chamar`);
       setChamando(true);
-      setAviso('O garçom foi avisado e já vem até a mesa.');
+      setAviso(t.garcomAvisadoAviso);
     } catch (err) {
       setErro(mensagemErro(err));
     }
   }
 
-  const rotuloTema = `Mudar para o tema ${temaEfetivo === 'escuro' ? 'claro' : 'escuro'}`;
+  const rotuloTema = temaEfetivo === 'escuro' ? t.mudarParaTemaClaro : t.mudarParaTemaEscuro;
   const mesa = cardapio.dados?.mesa;
   const categorias = cardapio.dados?.categorias ?? [];
   const recomendados = (cardapio.dados?.recomendados ?? [])
@@ -223,15 +389,26 @@ export function CardapioDaMesa() {
     .filter((p): p is ProdutoCliente => Boolean(p?.disponivel));
   const listaPedidos = pedidos.dados?.pedidos ?? [];
   const emAndamento = listaPedidos.filter((p) => p.status !== 'ENTREGUE' && p.status !== 'CANCELADO').length;
+  const desconto = pedidos.dados?.desconto ?? 0;
+  const mostrarDetalhesConta = (pedidos.dados?.taxa ?? 0) > 0 || desconto > 0;
+  const pendenteAvaliacao = avaliacao.dados?.pendente ?? null;
+  const mostrarAvaliacao = aba === 'pedidos' && pendenteAvaliacao !== null && !avaliacaoEncerrada;
+
+  const pratoDaFicha = pratoAberto !== null ? produtos.get(pratoAberto) : undefined;
+  const pratoComOpcoes = pratoDaFicha ? gruposComOpcoes(pratoDaFicha) : [];
+  const pendenteDoPrato = pratoComOpcoes.length > 0 ? grupoPendente(pratoComOpcoes, escolhidas) : null;
+  const extraDoPrato = somaDasOpcoes(pratoComOpcoes, escolhidas);
+
+  const idiomaTitulo = `${t.idioma}: ${idioma.toUpperCase()}`;
 
   return (
-    <div className="mesa-cli">
+    <div className="mesa-cli" lang={idioma}>
       <header className="mesa-cli-topo">
         <div className="mesa-cli-marca">
           <img src={logoSrc} alt="" className="mesa-cli-logo" width={44} height={44} />
           <div className="mesa-cli-marca-texto">
             <strong className="mesa-cli-nome">{plataforma.nome}</strong>
-            <span className="mesa-cli-mesa">{mesa ? nomeDaMesa(mesa) : 'Cardápio'}</span>
+            <span className="mesa-cli-mesa">{mesa ? t.mesaNumero(mesa.numero, mesa.nome) : t.cardapio}</span>
           </div>
         </div>
         <div className="mesa-cli-topo-acoes">
@@ -240,14 +417,43 @@ export function CardapioDaMesa() {
               type="button"
               className={chamando ? 'mesa-cli-chamar-topo mesa-cli-chamar-topo-avisado' : 'mesa-cli-chamar-topo'}
               disabled={chamando}
-              aria-label={chamando ? 'Garçom avisado' : 'Chamar garçom'}
+              aria-label={chamando ? t.garcomAvisado : t.chamarGarcom}
               onClick={() => void chamarGarcom()}
             >
               <Icone nome={chamando ? 'visto' : 'sino'} tamanho={18} />
               {/* Em tela estreita cabe só o texto curto. */}
-              <span className="mesa-cli-chamar-longo">{chamando ? 'Garçom avisado' : 'Chamar garçom'}</span>
-              <span className="mesa-cli-chamar-curto">{chamando ? 'Avisado' : 'Chamar'}</span>
+              <span className="mesa-cli-chamar-longo">{chamando ? t.garcomAvisado : t.chamarGarcom}</span>
+              <span className="mesa-cli-chamar-curto">{chamando ? t.avisadoCurto : t.chamarCurto}</span>
             </button>
+          )}
+          {idiomasAtivos.length > 1 && (
+            <div className="mesa-cli-idioma">
+              <button
+                type="button"
+                className="mesa-cli-idioma-botao"
+                aria-label={idiomaTitulo}
+                aria-expanded={idiomaAberto}
+                title={t.escolherIdioma}
+                onClick={() => setIdiomaAberto((aberto) => !aberto)}
+              >
+                {idioma.toUpperCase()}
+              </button>
+              {idiomaAberto && (
+                <div className="mesa-cli-idioma-opcoes" role="group" aria-label={t.escolherIdioma}>
+                  {idiomasAtivos.map((i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className="mesa-cli-idioma-opcao"
+                      aria-pressed={i === idioma}
+                      onClick={() => escolherIdioma(i)}
+                    >
+                      {NOME_IDIOMA[i]}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
           <button type="button" className="mesa-cli-redondo" aria-label={rotuloTema} title={rotuloTema} onClick={() => alternar()}>
             <Icone nome={temaEfetivo === 'escuro' ? 'sol' : 'lua'} tamanho={20} />
@@ -261,32 +467,32 @@ export function CardapioDaMesa() {
         <main className="mesa-cli-corpo">
           <section className="cartao mesa-cli-vazio">
             <Icone nome="mesas" tamanho={40} />
-            <h1>Não encontramos esta mesa</h1>
-            <p>O QR code pode ter sido trocado. Peça ajuda ao garçom para abrir o cardápio.</p>
+            <h1>{t.naoEncontrada}</h1>
+            <p>{t.naoEncontradaTexto}</p>
           </section>
         </main>
       )}
 
       {cardapio.dados && (
         <>
-          <nav className="mesa-cli-abas" aria-label="Seções">
+          <nav className="mesa-cli-abas" aria-label={t.secoes}>
             <button
               type="button"
               className={aba === 'cardapio' ? 'mesa-cli-aba mesa-cli-aba-ativa' : 'mesa-cli-aba'}
               aria-pressed={aba === 'cardapio'}
-              onClick={() => setAba('cardapio')}
+              onClick={() => trocarAba('cardapio')}
             >
               <Icone nome="cardapio" tamanho={18} />
-              Cardápio
+              {t.abaCardapio}
             </button>
             <button
               type="button"
               className={aba === 'pedidos' ? 'mesa-cli-aba mesa-cli-aba-ativa' : 'mesa-cli-aba'}
               aria-pressed={aba === 'pedidos'}
-              onClick={() => setAba('pedidos')}
+              onClick={() => trocarAba('pedidos')}
             >
               <Icone nome="pedidos" tamanho={18} />
-              Meus pedidos
+              {t.abaPedidos}
               {emAndamento > 0 && <span className="mesa-cli-contador">{emAndamento}</span>}
             </button>
           </nav>
@@ -300,25 +506,25 @@ export function CardapioDaMesa() {
                 {categorias.length === 0 && (
                   <section className="cartao mesa-cli-vazio">
                     <Icone nome="cardapio" tamanho={40} />
-                    <h1>Cardápio em preparo</h1>
-                    <p>Ainda não há itens no cardápio. Chame o garçom para fazer o pedido.</p>
+                    <h1>{t.cardapioEmPreparo}</h1>
+                    <p>{t.cardapioVazio}</p>
                   </section>
                 )}
 
                 {recomendados.length > 0 && (
-                  <section className="mesa-cli-recomendados" aria-label="Recomendados">
+                  <section className="mesa-cli-recomendados" aria-label={t.recomendados}>
                     <h2 className="mesa-cli-secao-titulo">
                       <Icone nome="estrela" tamanho={18} />
-                      {cardapio.dados.origemRecomendados === 'CASA' ? 'Recomendados da casa' : 'Mais pedidos'}
+                      {cardapio.dados.origemRecomendados === 'CASA' ? t.recomendadosCasa : t.maisPedidos}
                     </h2>
-                    <FaixaRolavel rotulo="Recomendados">
+                    <FaixaRolavel rotulo={t.recomendados} dica={t.arrastarParaVerMais}>
                       {recomendados.map((p) => (
                         <button
                           key={p.id}
                           type="button"
                           className="mesa-cli-recomendado"
-                          aria-label={`Ver detalhes de ${p.nome}, ${formatarMoeda(p.preco)}`}
-                          onClick={() => setPratoAberto(p.id)}
+                          aria-label={`${t.verDetalhes(p.nome)}, ${formatarMoeda(p.preco)}`}
+                          onClick={() => abrirPrato(p.id)}
                         >
                           {p.imagem ? (
                             <img className="mesa-cli-recomendado-foto" src={p.imagem} alt="" loading="lazy" />
@@ -328,7 +534,13 @@ export function CardapioDaMesa() {
                             </span>
                           )}
                           <span className="mesa-cli-recomendado-nome">{p.nome}</span>
-                          <span className="mesa-cli-recomendado-preco">{formatarMoeda(p.preco)}</span>
+                          <PrecoDoPrato
+                            preco={p.preco}
+                            precoOriginal={p.precoOriginal}
+                            promocao={p.promocao}
+                            idioma={idioma}
+                            classe="mesa-cli-recomendado-preco"
+                          />
                         </button>
                       ))}
                     </FaixaRolavel>
@@ -336,7 +548,7 @@ export function CardapioDaMesa() {
                 )}
 
                 {categorias.length > 1 && (
-                  <div className="mesa-cli-categorias" role="group" aria-label="Categorias">
+                  <div className="mesa-cli-categorias" role="group" aria-label={t.categorias}>
                     {categorias.map((c, i) => (
                       <button
                         key={c.id}
@@ -363,7 +575,9 @@ export function CardapioDaMesa() {
                     <h2 className="mesa-cli-secao-titulo">{c.nome}</h2>
                     <div className="mesa-cli-produtos">
                       {c.produtos.map((p) => {
+                        const comOpcoes = gruposComOpcoes(p).length > 0;
                         const quantidade = sacola[p.id] ?? 0;
+                        const naSacola = naSacolaDe(p.id);
                         return (
                           <article key={p.id} className={p.disponivel ? 'mesa-cli-produto' : 'mesa-cli-produto mesa-cli-esgotado'}>
                             <div className="mesa-cli-produto-texto">
@@ -371,32 +585,52 @@ export function CardapioDaMesa() {
                                 <button
                                   type="button"
                                   className="mesa-cli-abrir"
-                                  aria-label={`Ver detalhes de ${p.nome}`}
-                                  onClick={() => setPratoAberto(p.id)}
+                                  aria-label={t.verDetalhes(p.nome)}
+                                  onClick={() => abrirPrato(p.id)}
                                 >
                                   {p.nome}
                                 </button>
                               </h3>
+                              {p.combo && <Selo cor="azul">{t.combo}</Selo>}
                               {p.descricao && <p className="mesa-cli-produto-descricao">{p.descricao}</p>}
                               <span className="mesa-cli-ver" aria-hidden="true">
-                                Ver ingredientes e tabela nutricional
+                                {t.verIngredientes}
                               </span>
                               <div className="mesa-cli-produto-base">
-                                <span className="mesa-cli-preco">{formatarMoeda(p.preco)}</span>
+                                <PrecoDoPrato
+                                  preco={p.preco}
+                                  precoOriginal={p.precoOriginal}
+                                  promocao={p.promocao}
+                                  idioma={idioma}
+                                  classe="mesa-cli-preco"
+                                />
                                 {!p.disponivel ? (
-                                  <Selo cor="amarelo">Esgotado</Selo>
+                                  <Selo cor="amarelo">{t.esgotado}</Selo>
+                                ) : comOpcoes ? (
+                                  <span className="mesa-cli-acao-opcoes">
+                                    {naSacola > 0 && <span className="mesa-cli-na-sacola">{t.naSacola(naSacola)}</span>}
+                                    <button
+                                      type="button"
+                                      className="mesa-cli-adicionar"
+                                      aria-label={t.adicionarNome(p.nome)}
+                                      onClick={() => abrirPrato(p.id)}
+                                    >
+                                      <Icone nome="somar" tamanho={16} />
+                                      {t.adicionar}
+                                    </button>
+                                  </span>
                                 ) : quantidade === 0 ? (
                                   <button
                                     type="button"
                                     className="mesa-cli-adicionar"
-                                    aria-label={`Adicionar ${p.nome}`}
+                                    aria-label={t.adicionarNome(p.nome)}
                                     onClick={() => somar(p.id, 1)}
                                   >
                                     <Icone nome="somar" tamanho={16} />
-                                    Adicionar
+                                    {t.adicionar}
                                   </button>
                                 ) : (
-                                  <Quantidade nome={p.nome} valor={quantidade} aoSomar={(d) => somar(p.id, d)} />
+                                  <Quantidade nome={p.nome} valor={quantidade} aoSomar={(d) => somar(p.id, d)} t={t} />
                                 )}
                               </div>
                             </div>
@@ -412,34 +646,50 @@ export function CardapioDaMesa() {
 
             {aba === 'pedidos' && (
               <>
+                {mostrarAvaliacao && (
+                  <Avaliar
+                    codigo={codigo}
+                    idioma={idioma}
+                    aoEnviar={() => {
+                      setAvaliacaoEncerrada(true);
+                      setAviso(t.obrigadoAvaliacao);
+                    }}
+                    aoAdiar={() => setAvaliacaoEncerrada(true)}
+                  />
+                )}
                 {pedidos.erro && <Aviso tipo="erro">{pedidos.erro}</Aviso>}
                 {pedidos.carregando && !pedidos.dados && <Carregando />}
                 {pedidos.dados && listaPedidos.length === 0 && (
                   <section className="cartao mesa-cli-vazio">
                     <Icone nome="pedidos" tamanho={40} />
-                    <h1>Nenhum pedido ainda</h1>
-                    <p>Escolha os itens no cardápio e envie o pedido. Ele aparece aqui.</p>
-                    <Botao aoClicar={() => setAba('cardapio')}>Ver cardápio</Botao>
+                    <h1>{t.semPedidos}</h1>
+                    <p>{t.semPedidosTexto}</p>
+                    <Botao aoClicar={() => trocarAba('cardapio')}>{t.verCardapio}</Botao>
                   </section>
                 )}
                 {listaPedidos.map((p) => (
                   <article className="cartao mesa-cli-pedido" key={p.id}>
                     <div className="mesa-cli-pedido-topo">
                       <div>
-                        <strong>Pedido #{p.id}</strong>
+                        <strong>{t.pedidoNumero(p.id)}</strong>
                         <span className="mesa-cli-pedido-meta">
                           {horaCurta(p.criadoEm)}
                           {p.nomeCliente ? ` · ${p.nomeCliente}` : ''}
                         </span>
                       </div>
-                      <Selo cor={STATUS_PEDIDO[p.status].cor}>{STATUS_PEDIDO[p.status].rotulo}</Selo>
+                      <Selo cor={STATUS_PEDIDO[p.status].cor}>{t.statusRotulo[p.status]}</Selo>
                     </div>
-                    <p className="mesa-cli-pedido-frase">{FRASE_STATUS[p.status]}</p>
+                    <p className="mesa-cli-pedido-frase">{t.statusFrase[p.status]}</p>
                     <ul className="mesa-cli-pedido-itens">
                       {p.itens.map((item, i) => (
                         <li key={i}>
                           <span>
                             <strong>{item.quantidade}x</strong> {item.nomeProduto}
+                            {item.opcoes && item.opcoes.length > 0 && (
+                              <span className="mesa-cli-pedido-opcoes">
+                                {item.opcoes.map((o) => `${o.grupo}: ${o.opcao}`).join(' · ')}
+                              </span>
+                            )}
                           </span>
                           <span>{formatarMoeda(item.precoUnitario * item.quantidade)}</span>
                         </li>
@@ -447,33 +697,40 @@ export function CardapioDaMesa() {
                     </ul>
                     {p.observacao && <p className="mesa-cli-pedido-nota">{p.observacao}</p>}
                     <div className="mesa-cli-pedido-total">
-                      <span>Total do pedido</span>
+                      <span>{t.totalDoPedido}</span>
                       <strong>{formatarMoeda(p.total)}</strong>
                     </div>
                   </article>
                 ))}
                 {pedidos.dados && listaPedidos.length > 0 && (
                   <div className="mesa-cli-conta-bloco">
-                    {(pedidos.dados.taxa ?? 0) > 0 && (
+                    {mostrarDetalhesConta && (
                       <>
                         <div className="mesa-cli-conta-linha">
-                          <span>Pedidos</span>
+                          <span>{t.pedidos}</span>
                           <span>{formatarMoeda(pedidos.dados.total)}</span>
                         </div>
-                        <div className="mesa-cli-conta-linha">
-                          <span>Taxa de serviço ({pedidos.dados.taxaPercentual}%, opcional)</span>
-                          <span>{formatarMoeda(pedidos.dados.taxa ?? 0)}</span>
-                        </div>
+                        {desconto > 0 && (
+                          <div className="mesa-cli-conta-linha">
+                            <span>{t.desconto(formatarMoeda(desconto))}</span>
+                          </div>
+                        )}
+                        {(pedidos.dados.taxa ?? 0) > 0 && (
+                          <div className="mesa-cli-conta-linha">
+                            <span>{t.taxaServico(pedidos.dados.taxaPercentual)}</span>
+                            <span>{formatarMoeda(pedidos.dados.taxa ?? 0)}</span>
+                          </div>
+                        )}
                       </>
                     )}
                     {(pedidos.dados.pago ?? 0) > 0 && (
                       <div className="mesa-cli-conta-linha">
-                        <span>Já pago</span>
+                        <span>{t.jaPago}</span>
                         <span>− {formatarMoeda(pedidos.dados.pago ?? 0)}</span>
                       </div>
                     )}
                     <div className="mesa-cli-conta">
-                      <span>{(pedidos.dados.pago ?? 0) > 0 ? 'Falta pagar' : 'Total da mesa até agora'}</span>
+                      <span>{(pedidos.dados.pago ?? 0) > 0 ? t.faltaPagar : t.totalAteAgora}</span>
                       <strong>
                         {formatarMoeda(
                           (pedidos.dados.pago ?? 0) > 0
@@ -489,15 +746,11 @@ export function CardapioDaMesa() {
 
             <section className="cartao mesa-cli-chamar">
               <div>
-                <strong>Precisa de ajuda?</strong>
-                <p>
-                  {chamando
-                    ? 'O garçom já foi avisado e vem até a mesa.'
-                    : 'Chame o garçom para tirar dúvidas ou pedir a conta.'}
-                </p>
+                <strong>{t.precisaAjuda}</strong>
+                <p>{chamando ? t.garcomJaAvisado : t.chameGarcomConta}</p>
               </div>
               <Botao variante="secundario" desabilitado={chamando} aoClicar={() => void chamarGarcom()}>
-                {chamando ? 'Garçom avisado' : 'Chamar garçom'}
+                {chamando ? t.garcomAvisado : t.chamarGarcom}
               </Botao>
             </section>
           </main>
@@ -505,44 +758,57 @@ export function CardapioDaMesa() {
           {unidades > 0 && aba === 'cardapio' && (
             <div className="mesa-cli-barra">
               <button type="button" className="mesa-cli-barra-botao" onClick={() => setSacolaAberta(true)}>
-                <span className="mesa-cli-barra-itens">
-                  {unidades} {unidades === 1 ? 'item' : 'itens'}
-                </span>
-                <span>Ver pedido</span>
+                <span className="mesa-cli-barra-itens">{t.itensNaBarra(unidades)}</span>
+                <span>{t.verPedido}</span>
                 <span>{formatarMoeda(total)}</span>
               </button>
             </div>
           )}
 
-          {pratoAberto !== null &&
+          {pratoDaFicha &&
             (() => {
-              const prato = produtos.get(pratoAberto);
-              if (!prato) return null;
+              const prato = pratoDaFicha;
               const quantidade = sacola[prato.id] ?? 0;
+              const comOpcoes = pratoComOpcoes.length > 0;
               return (
                 <PerfilDoPrato
                   prato={prato}
+                  idioma={idioma}
                   aoFechar={() => setPratoAberto(null)}
+                  escolhidas={comOpcoes ? escolhidas : undefined}
+                  aoEscolher={comOpcoes ? setEscolhidas : undefined}
                   rodape={
                     prato.disponivel ? (
-                      <>
-                        {quantidade > 0 && (
-                          <Quantidade nome={prato.nome} valor={quantidade} aoSomar={(d) => somar(prato.id, d)} />
-                        )}
+                      comOpcoes ? (
                         <Botao
+                          desabilitado={pendenteDoPrato !== null}
                           aoClicar={() => {
-                            if (quantidade === 0) somar(prato.id, 1);
+                            adicionarComOpcoes(prato, escolhidas);
                             setPratoAberto(null);
                           }}
                         >
-                          {quantidade === 0
-                            ? `Adicionar ao pedido · ${formatarMoeda(prato.preco)}`
-                            : `Pronto · ${formatarMoeda(prato.preco * quantidade)}`}
+                          {t.adicionarSacola(formatarMoeda(prato.preco + extraDoPrato))}
                         </Botao>
-                      </>
+                      ) : (
+                        <>
+                          {quantidade > 0 && (
+                            <Quantidade nome={prato.nome} valor={quantidade} aoSomar={(d) => somar(prato.id, d)} t={t} />
+                          )}
+                          <Botao
+                            aoClicar={() => {
+                              if (quantidade === 0) somar(prato.id, 1);
+                              setPratoAberto(null);
+                            }}
+                          >
+                            {quantidade === 0
+                              ? t.adicionarAoPedido(formatarMoeda(prato.preco))
+                              : t.prontoTotal(formatarMoeda(prato.preco * quantidade))}
+                          </Botao>
+                        </>
+                      )
                     ) : (
                       <Botao variante="secundario" aoClicar={() => setPratoAberto(null)}>
-                        Voltar ao cardápio
+                        {t.voltarCardapio}
                       </Botao>
                     )
                   }
@@ -551,38 +817,45 @@ export function CardapioDaMesa() {
             })()}
 
           {sacolaAberta && (
-            <Modal aberto titulo="Seu pedido" aoFechar={() => setSacolaAberta(false)}>
+            <Modal aberto titulo={t.seuPedido} aoFechar={() => setSacolaAberta(false)}>
               <form onSubmit={enviarPedido}>
                 {erro && <Aviso tipo="erro">{erro}</Aviso>}
-                {linhas.length === 0 && <p className="mesa-cli-sacola-vazia">Sua sacola está vazia.</p>}
+                {unidades === 0 && <p className="mesa-cli-sacola-vazia">{t.sacolaVazia}</p>}
                 <ul className="mesa-cli-sacola">
-                  {linhas.map((l) => (
-                    <li key={l.produto.id}>
+                  {linhasSimples.map((l) => (
+                    <li key={`p${l.produto.id}`}>
                       <div className="mesa-cli-sacola-texto">
                         <span className="mesa-cli-sacola-nome">{l.produto.nome}</span>
                         <span className="mesa-cli-sacola-valor">{formatarMoeda(l.produto.preco * l.quantidade)}</span>
                       </div>
-                      <Quantidade nome={l.produto.nome} valor={l.quantidade} aoSomar={(d) => somar(l.produto.id, d)} />
+                      <Quantidade nome={l.produto.nome} valor={l.quantidade} aoSomar={(d) => somar(l.produto.id, d)} t={t} />
+                    </li>
+                  ))}
+                  {linhasComOpcoes.map((l) => (
+                    <li key={`o${l.chave}`}>
+                      <div className="mesa-cli-sacola-texto">
+                        <span className="mesa-cli-sacola-nome">{l.produto.nome}</span>
+                        {l.rotulos.length > 0 && <span className="mesa-cli-sacola-opcoes">{l.rotulos.join(', ')}</span>}
+                        <span className="mesa-cli-sacola-valor">
+                          {formatarMoeda((l.produto.preco + l.extra) * l.quantidade)}
+                        </span>
+                      </div>
+                      <Quantidade nome={l.produto.nome} valor={l.quantidade} aoSomar={(d) => alterarLinha(l.chave, d)} t={t} />
                     </li>
                   ))}
                 </ul>
                 <div className="mesa-cli-conta">
-                  <span>Total</span>
+                  <span>{t.total}</span>
                   <strong>{formatarMoeda(total)}</strong>
                 </div>
-                <Campo rotulo="Seu nome (opcional)" valor={nomeCliente} aoMudar={setNomeCliente} />
-                <AreaTexto
-                  rotulo="Observação (opcional): ponto da carne, sem cebola..."
-                  valor={observacao}
-                  aoMudar={setObservacao}
-                  linhas={2}
-                />
-                <p className="mesa-cli-nota">O pagamento é feito com o garçom, ao fechar a conta.</p>
-                <Botao tipo="submit" desabilitado={enviando || linhas.length === 0}>
-                  {enviando ? 'Enviando...' : 'Enviar pedido'}
+                <Campo rotulo={t.seuNome} valor={nomeCliente} aoMudar={setNomeCliente} />
+                <AreaTexto rotulo={t.observacao} valor={observacao} aoMudar={setObservacao} linhas={2} />
+                <p className="mesa-cli-nota">{t.pagamentoNota}</p>
+                <Botao tipo="submit" desabilitado={enviando || unidades === 0}>
+                  {enviando ? t.enviando : t.enviarPedido}
                 </Botao>{' '}
                 <Botao variante="secundario" aoClicar={() => setSacolaAberta(false)}>
-                  Continuar escolhendo
+                  {t.continuarEscolhendo}
                 </Botao>
               </form>
             </Modal>

@@ -1,5 +1,5 @@
 import { horaCurta, nomeDaMesa } from './restaurante';
-import type { ContaDTO, PagamentoDTO, PedidoDTO } from './restaurante';
+import type { ContaDTO, OpcaoEscolhidaDTO, PagamentoDTO, PedidoDTO } from './restaurante';
 
 // Impressão pelo navegador, no formato de bobina (80 mm). Funciona com qualquer impressora instalada no
 // computador, inclusive as térmicas de cozinha e de caixa: basta escolhê-la na janela de impressão.
@@ -22,6 +22,8 @@ const ESTILO = `
   .destaque { font-size: 15px; font-weight: 700; }
   .obs { border: 1px solid #000; padding: 4px; margin: 6px 0; font-size: 13px; font-weight: 700; }
   .pequeno { font-size: 11px; }
+  .opcoes { margin: 0 0 2px 22px; font-size: 13px; font-weight: 700; }
+  .opcoes-leve { margin: -1px 0 3px 12px; font-size: 11px; }
 `;
 
 function escapar(texto: string): string {
@@ -34,6 +36,11 @@ function moeda(valor: number): string {
 
 function dataHora(iso: string | Date): string {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// Opções de um item em texto: "Ao ponto · + Bacon" (com "+" quando tem acréscimo).
+function textoOpcoes(opcoes: OpcaoEscolhidaDTO[] | undefined): string {
+  return (opcoes ?? []).map((o) => (o.precoExtra > 0 ? `+ ${o.opcao}` : o.opcao)).join(' · ');
 }
 
 // Imprime um trecho de HTML num quadro escondido (não abre janela nova, então não é bloqueado como pop-up).
@@ -65,17 +72,24 @@ export function imprimirHtml(titulo: string, corpo: string): void {
 }
 
 // Comanda da cozinha: mesa em destaque, itens grandes, observações em caixa.
-export function imprimirComanda(pedido: PedidoDTO): void {
-  const itens = pedido.itens
-    .map(
-      (i) =>
+// Com setorId, sai só os itens desse setor e o nome do setor aparece no cabeçalho.
+export function imprimirComanda(pedido: PedidoDTO, setorId?: number | null, nomeDoSetor?: string): void {
+  const doSetor =
+    setorId === undefined || setorId === null ? pedido.itens : pedido.itens.filter((i) => i.setorId === setorId);
+  const itens = doSetor
+    .map((i) => {
+      const opcoes = textoOpcoes(i.opcoes);
+      return (
         `<p class="item">${i.quantidade}x ${escapar(i.nomeProduto)}</p>` +
-        (i.observacao ? `<p class="nota">&gt; ${escapar(i.observacao)}</p>` : ''),
-    )
+        (opcoes ? `<p class="opcoes">${escapar(opcoes)}</p>` : '') +
+        (i.observacao ? `<p class="nota">&gt; ${escapar(i.observacao)}</p>` : '')
+      );
+    })
     .join('');
   imprimirHtml(
     `Pedido ${pedido.id}`,
     `<h2>${escapar(nomeDaMesa(pedido.mesa))}</h2>` +
+      (nomeDoSetor ? `<p class="centro destaque">Setor: ${escapar(nomeDoSetor)}</p>` : '') +
       `<p class="centro">Pedido #${pedido.id} · ${horaCurta(pedido.criadoEm)}</p>` +
       `<p class="centro pequeno">${pedido.origem === 'CLIENTE' ? 'Feito pelo cliente' : `Lançado por ${escapar(pedido.garcom?.nome ?? 'equipe')}`}` +
       `${pedido.nomeCliente ? ` · ${escapar(pedido.nomeCliente)}` : ''}</p>` +
@@ -86,25 +100,42 @@ export function imprimirComanda(pedido: PedidoDTO): void {
 }
 
 function linhasDosItens(conta: ContaDTO): string {
-  // Junta os itens iguais de todos os pedidos da conta.
-  const juntos = new Map<string, { nome: string; quantidade: number; total: number }>();
+  // Junta os itens iguais (mesmo nome, preço e opções) de todos os pedidos da conta.
+  const juntos = new Map<string, { nome: string; opcoes: string; quantidade: number; total: number }>();
   for (const pedido of conta.pedidos) {
     for (const item of pedido.itens) {
-      const chave = `${item.nomeProduto}|${item.precoUnitario}`;
-      const atual = juntos.get(chave) ?? { nome: item.nomeProduto, quantidade: 0, total: 0 };
+      const opcoes = textoOpcoes(item.opcoes);
+      const chave = `${item.nomeProduto}|${item.precoUnitario}|${opcoes}`;
+      const atual = juntos.get(chave) ?? { nome: item.nomeProduto, opcoes, quantidade: 0, total: 0 };
       atual.quantidade += item.quantidade;
       atual.total += item.precoUnitario * item.quantidade;
       juntos.set(chave, atual);
     }
   }
   return [...juntos.values()]
-    .map((i) => `<div class="par"><span>${i.quantidade}x ${escapar(i.nome)}</span><span>${moeda(i.total)}</span></div>`)
+    .map(
+      (i) =>
+        `<div class="par"><span>${i.quantidade}x ${escapar(i.nome)}</span><span>${moeda(i.total)}</span></div>` +
+        (i.opcoes ? `<p class="opcoes-leve">${escapar(i.opcoes)}</p>` : ''),
+    )
     .join('');
 }
 
+// Uma linha de desconto na soma (valor com sinal de menos).
+function linhaDesconto(rotulo: string, valor: number): string {
+  return `<div class="par"><span>${escapar(rotulo)}</span><span>-${moeda(valor)}</span></div>`;
+}
+
 function totaisDaConta(conta: ContaDTO): string {
+  const descontos =
+    (conta.descontoCupom > 0
+      ? linhaDesconto(`Cupom ${conta.conta?.cupom?.codigo ?? ''}`.trim(), conta.descontoCupom)
+      : '') +
+    (conta.descontoPontos > 0 ? linhaDesconto('Pontos', conta.descontoPontos) : '') +
+    (conta.descontoManual > 0 ? linhaDesconto('Desconto', conta.descontoManual) : '');
   return (
     `<div class="par"><span>Subtotal</span><span>${moeda(conta.subtotal)}</span></div>` +
+    descontos +
     (conta.taxa > 0
       ? `<div class="par"><span>Taxa de serviço (${conta.conta?.taxaPercentual ?? 0}%)</span><span>${moeda(conta.taxa)}</span></div>`
       : '') +

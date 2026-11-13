@@ -1,0 +1,49 @@
+/* Avaliações dos clientes. Só variáveis de ui/estilo.css (funciona no tema escuro e no celular). */
+
+.avaliacoes-notas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.avaliacoes-serie-titulo {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--cor-texto);
+}
+
+/* Uma linha por nota: rótulo, barra e número. */
+.avaliacoes-barra-linha {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) 2.5rem;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.avaliacoes-barra-rotulo {
+  font-size: 0.9rem;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.avaliacoes-barra-trilho {
+  height: 0.9rem;
+  overflow: hidden;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+}
+
+.avaliacoes-barra-preench {
+  height: 100%;
+  min-width: 0;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-primaria);
+}
+
+.avaliacoes-barra-valor {
+  text-align: right;
+  font-weight: 600;
+  color: var(--cor-texto);
+}

@@ -1,0 +1,134 @@
+/* Conta da mesa (descontos e cliente) e ações de trocar, juntar e transferir. */
+
+.mesas-descontos {
+  margin: 12px 0;
+}
+
+.mesas-descontos summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--cor-texto);
+  padding: 4px 0;
+}
+
+.mesas-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 10px 0;
+  min-width: 0;
+}
+
+.mesas-subtitulo {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.mesas-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mesas-linha > .campo {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.mesas-texto {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--cor-texto);
+}
+
+.mesas-texto-suave {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+/* Linhas de desconto no quadro de valores da conta. */
+.mesas-desconto dd {
+  color: var(--cor-verde);
+}
+
+/* Modais de trocar, juntar e transferir. */
+.mesas-itens {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.mesas-item {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+}
+
+.mesas-item-texto {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.mesas-item-nome {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  color: var(--cor-texto);
+}
+
+.mesas-item-detalhe {
+  font-size: 0.85rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.mesas-qtd {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.mesas-qtd-valor {
+  min-width: 84px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--cor-texto);
+}
+
+.mesas-total {
+  margin: 8px 0;
+  font-size: 1rem;
+  color: var(--cor-texto);
+}
+
+.mesas-total strong {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 420px) {
+  .mesas-qtd {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
