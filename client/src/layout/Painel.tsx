@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
+import type { AtualizacaoDTO } from '../lib/atualizacao';
 import { RAIZ_DO_PERFIL } from '../lib/tipos';
 import type { Perfil } from '../lib/tipos';
 import { useDados } from '../lib/useDados';
@@ -179,6 +180,8 @@ export function Painel() {
   const atalhos = atalhosDoPerfil(usuario?.perfil);
   // O gráfico de vendas é só do gestor; sem ele, a linha fica com duas colunas.
   const gestor = usuario?.perfil === 'GESTOR';
+  // Aviso de atualização só para o gestor. Erro nessa consulta é ignorado.
+  const atualizacao = useDados<AtualizacaoDTO>(gestor ? '/atualizacao' : null);
   // Limpeza e recepção não veem pedidos: o painel delas fica só com o destaque e os atalhos.
   const semPedidos = usuario?.perfil === 'LIMPEZA' || usuario?.perfil === 'RECEPCAO';
 
@@ -206,6 +209,18 @@ export function Painel() {
 
       {resumo.carregando && !dados && <Carregando />}
       {resumo.erro && <Aviso tipo="erro">{resumo.erro}</Aviso>}
+      {atualizacao.dados?.ativo === true &&
+        atualizacao.dados.pendentes.length > 0 &&
+        atualizacao.dados.tarefa.estado !== 'RODANDO' && (
+          <Aviso tipo="info">
+            Há uma atualização do sistema (
+            {atualizacao.dados.pendentes.length === 1
+              ? '1 novidade'
+              : `${atualizacao.dados.pendentes.length} novidades`}
+            ).{' '}
+            <Link to="/gestor/configuracoes?aba=atualizacao">Ver e atualizar</Link>
+          </Aviso>
+        )}
       {dados && (
         <div className="painel-indicadores">
           {dados.cartoes.map((c) => (

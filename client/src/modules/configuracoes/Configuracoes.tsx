@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../lib/api';
 import { usePlataforma } from '../../lib/plataforma';
 import { Abas, Aviso, Carregando, Pagina } from '../../ui';
 import { mensagemErro } from '../cadastros/tipos';
+import { Atualizacao } from './Atualizacao';
 import { Cores } from './Cores';
 import { Email } from './Email';
 import { Identidade } from './Identidade';
@@ -13,14 +15,18 @@ const ABAS = [
   { id: 'identidade', rotulo: 'Identidade' },
   { id: 'cores', rotulo: 'Cores' },
   { id: 'email', rotulo: 'E-mail' },
+  { id: 'atualizacao', rotulo: 'Atualização' },
 ];
 
 export function Configuracoes() {
   const { recarregar, aplicarPrevia } = usePlataforma();
+  const [parametros] = useSearchParams();
   const [config, setConfig] = useState<ConfiguracoesDTO | null>(null);
   const [rascunho, setRascunho] = useState<IdentidadeDados | null>(null);
   const [erroCarga, setErroCarga] = useState<string | null>(null);
-  const [aba, setAba] = useState('identidade');
+  const [aba, setAba] = useState(() =>
+    ABAS.some((a) => a.id === parametros.get('aba')) ? (parametros.get('aba') as string) : 'identidade',
+  );
 
   useEffect(() => {
     let ativo = true;
@@ -99,6 +105,7 @@ export function Configuracoes() {
           <div hidden={aba !== 'email'}>
             <Email config={config} aoSalvo={aoSalvarEmail} />
           </div>
+          {aba === 'atualizacao' && <Atualizacao />}
         </>
       )}
     </Pagina>

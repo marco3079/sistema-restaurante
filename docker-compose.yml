@@ -28,6 +28,8 @@ services:
       ADMIN_SENHA: ${ADMIN_SENHA:-gestor1234}
       SEED_DEMO: ${SEED_DEMO:-false}
       TZ: ${TZ:-America/Sao_Paulo}
+      ATUALIZADOR_URL: "http://atualizador:4000"
+      ATUALIZADOR_SEGREDO: ${JWT_SECRET:-troque-este-segredo-de-exemplo}
     ports:
       - "127.0.0.1:${API_PORT:-3091}:3000"
     healthcheck:
@@ -45,6 +47,19 @@ services:
         condition: service_healthy
     ports:
       - "${WEB_PORT:-8091}:80"
+    restart: unless-stopped
+
+  # Atualiza o sistema para o último commit do GitHub (botão em Configurações > Atualização).
+  # Tem acesso ao Docker do computador e à pasta do projeto; só a API fala com ele, pela rede interna.
+  atualizador:
+    build: ./atualizador
+    environment:
+      ATUALIZADOR_SEGREDO: ${JWT_SECRET:-troque-este-segredo-de-exemplo}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+      TZ: ${TZ:-America/Sao_Paulo}
+    volumes:
+      - .:/projeto
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
 volumes:
