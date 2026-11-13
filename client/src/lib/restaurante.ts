@@ -195,9 +195,30 @@ export interface ItemPedidoDTO {
   setorId?: number | null;
 }
 
+// SALAO: mesa de verdade. DELIVERY e RETIRADA: mesa virtual de um pedido de delivery ou de retirada no balcão.
+export type TipoMesa = 'SALAO' | 'DELIVERY' | 'RETIRADA';
+
+// Dados de entrega (ou retirada) de um pedido de delivery.
+export interface EntregaDTO {
+  tipo: TipoMesa;
+  codigo: string;
+  nomeCliente: string;
+  telefone: string;
+  endereco: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  referencia: string | null;
+  taxaEntrega: number;
+  formaPagamento: string;
+  trocoPara: number | null;
+  saiuEm: string | null;
+  concluidoEm: string | null;
+  entregadorNome: string | null;
+}
+
 export interface PedidoDTO {
   id: number;
-  mesa: { id: number; numero: number; nome: string | null };
+  mesa: { id: number; numero: number; nome: string | null; tipo?: TipoMesa };
   status: StatusPedido;
   origem: 'CLIENTE' | 'GARCOM';
   nomeCliente: string | null;
@@ -211,11 +232,13 @@ export interface PedidoDTO {
   itens: ItemPedidoDTO[];
   // Partes do pedido por setor (cozinha, bar...) e a situação de cada uma.
   setores?: { setorId: number; nome: string; cor: string; status: StatusPedido }[];
+  // Dados de entrega ou retirada (só pedidos de delivery e de retirada).
+  entrega?: EntregaDTO | null;
 }
 
 // Conta aberta da mesa. Pode ser paga em partes: `restante` é o que ainda falta.
 export interface ContaDTO {
-  mesa: { id: number; numero: number; nome: string | null };
+  mesa: { id: number; numero: number; nome: string | null; tipo?: TipoMesa };
   conta: {
     id: number;
     taxaServico: boolean;
@@ -235,6 +258,8 @@ export interface ContaDTO {
   descontoPontos: number;
   descontoManual: number;
   taxa: number;
+  // Taxa de entrega do delivery (0 quando não há).
+  taxaEntrega?: number;
   total: number;
   pago: number;
   restante: number;
@@ -256,7 +281,9 @@ export const STATUS_PEDIDO: Record<
 
 export const FORMAS_PAGAMENTO = ['Dinheiro', 'Pix', 'Cartão de débito', 'Cartão de crédito'];
 
-export function nomeDaMesa(mesa: { numero: number; nome: string | null }): string {
+export function nomeDaMesa(mesa: { numero: number; nome: string | null; tipo?: TipoMesa }): string {
+  if (mesa.tipo === 'DELIVERY') return mesa.nome ? `Delivery · ${mesa.nome}` : 'Delivery';
+  if (mesa.tipo === 'RETIRADA') return mesa.nome ? `Retirada · ${mesa.nome}` : 'Retirada';
   return mesa.nome ? `Mesa ${mesa.numero} · ${mesa.nome}` : `Mesa ${mesa.numero}`;
 }
 
@@ -354,7 +381,7 @@ export interface MaquinetasDTO {
 export interface PagamentoDTO {
   id: number;
   contaId: number | null;
-  mesa: { id: number; numero: number; nome: string | null };
+  mesa: { id: number; numero: number; nome: string | null; tipo?: TipoMesa };
   // Parte da conta que este pagamento quita.
   valor: number;
   // Gorjeta dada além da conta.

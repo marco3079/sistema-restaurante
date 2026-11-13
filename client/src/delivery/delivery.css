@@ -1,0 +1,324 @@
+/* Telas públicas do delivery (/pedir e /pedido/:codigo). Usa o visual do cardápio da mesa (cliente.css) e
+   só as variáveis de ui/estilo.css. Pensado para 360 px de largura, sem rolagem lateral. */
+
+.delivery-pagina .mesa-cli-corpo > .cartao {
+  min-width: 0;
+}
+
+.delivery-pagina .mesa-cli-corpo {
+  padding-bottom: 1rem;
+}
+
+/* ---------- Topo: entrega ou retirada ---------- */
+
+.delivery-topo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.delivery-tipos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .delivery-tipos {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.delivery-tipo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 48px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.delivery-tipo[aria-pressed='true'] {
+  border-color: transparent;
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+  box-shadow: var(--sombra-primaria);
+}
+
+.delivery-tipo:focus-visible,
+.delivery-opcao input:focus-visible,
+.delivery-acoes a:focus-visible,
+.delivery-acoes button:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+}
+
+.delivery-tempo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--cor-primaria);
+}
+
+.delivery-tempo svg {
+  flex: none;
+}
+
+.delivery-nota {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Dados do pedido ---------- */
+
+.delivery-dados {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.delivery-dados > .mesa-cli-secao-titulo {
+  margin: 0;
+}
+
+.delivery-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.delivery-subtitulo {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.delivery-campos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 560px) {
+  .delivery-campos {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.delivery-campos .campo,
+.delivery-form > .campo {
+  min-width: 0;
+}
+
+.delivery-campos .campo-controle,
+.delivery-form .campo-controle {
+  min-height: 44px;
+  max-width: 100%;
+}
+
+.delivery-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  min-width: 0;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+}
+
+.delivery-legenda {
+  padding: 0 0.25rem;
+  font-weight: 800;
+  color: var(--cor-texto);
+}
+
+.delivery-opcao {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.3rem 0.25rem;
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+
+.delivery-opcao input {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--cor-primaria);
+}
+
+.delivery-opcao span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Resumo do pedido (dados) ---------- */
+
+.delivery-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+}
+
+.delivery-resumo .mesa-cli-sacola {
+  margin: 0;
+}
+
+.delivery-resumo .mesa-cli-sacola li {
+  align-items: flex-start;
+}
+
+.delivery-resumo .mesa-cli-sacola li > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.delivery-resumo .mesa-cli-conta {
+  margin-bottom: 0;
+}
+
+/* ---------- Acompanhamento ---------- */
+
+.delivery-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.delivery-saudacao {
+  margin: 0;
+  font-weight: 700;
+  color: var(--cor-texto);
+}
+
+.delivery-frase {
+  margin: 0.1rem 0 0;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 800;
+  color: var(--cor-primaria);
+  overflow-wrap: anywhere;
+}
+
+.delivery-etapas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.delivery-etapa {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.3rem 0;
+  color: var(--cor-texto);
+}
+
+.delivery-etapa-marca {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--cor-borda);
+  color: var(--cor-sobre-primaria);
+}
+
+.delivery-etapa-feita .delivery-etapa-marca {
+  border-color: var(--cor-primaria);
+  background: var(--cor-primaria);
+}
+
+.delivery-etapa-atual .delivery-etapa-marca {
+  border-color: var(--cor-primaria);
+  box-shadow: 0 0 0 4px var(--cor-primaria-suave);
+}
+
+.delivery-etapa-atual .delivery-etapa-rotulo {
+  font-weight: 800;
+  color: var(--cor-primaria);
+}
+
+.delivery-etapa-futura {
+  opacity: 0.5;
+  color: var(--cor-texto-suave);
+}
+
+.delivery-etapa-futura .delivery-etapa-marca {
+  border-style: dashed;
+}
+
+.delivery-etapa-rotulo {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.delivery-etapa-estado {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cor-texto-suave);
+  white-space: nowrap;
+}
+
+.delivery-etapa-atual .delivery-etapa-estado {
+  color: var(--cor-primaria);
+}
+
+.delivery-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--cor-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.delivery-info p {
+  margin: 0;
+}
+
+.delivery-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.delivery-acoes .botao {
+  min-height: 44px;
+}
+
+.delivery-acoes a {
+  text-decoration: none;
+}

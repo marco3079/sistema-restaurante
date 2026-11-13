@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { asyncHandler, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { exigirAcao } from '../../lib/autorizacao';
 import { juntarMesas, trocarMesa, transferirItens } from '../../lib/transferencias';
 
 // Trocar de mesa, juntar contas e transferir itens entre mesas. Só o gestor e o garçom.
@@ -36,6 +37,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const id = idParam(req);
     const dados = validar(trocarSchema, req.body);
+    await exigirAcao(req, 'TRANSFERIR_MESA');
     await trocarMesa(id, dados.paraMesaId);
     res.json({ ok: true });
   })
@@ -47,6 +49,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const id = idParam(req);
     const dados = validar(juntarSchema, req.body);
+    await exigirAcao(req, 'TRANSFERIR_MESA');
     await juntarMesas(id, dados.comMesaId);
     res.json({ ok: true });
   })
@@ -58,6 +61,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const id = idParam(req);
     const dados = validar(transferirSchema, req.body);
+    await exigirAcao(req, 'TRANSFERIR_MESA');
     await transferirItens(id, dados.paraMesaId, dados.itens);
     res.json({ ok: true });
   })

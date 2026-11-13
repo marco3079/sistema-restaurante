@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { exigirAcao } from '../../lib/autorizacao';
 import { cifrar } from '../../lib/cripto';
 import { lerConfiguracao, limparCacheConfiguracao } from '../../lib/email';
 import { inicioDoDia } from '../../lib/pedidos';
@@ -252,6 +253,10 @@ router.put(
     }
     if (resumo.pagamentoPendente) {
       throw new HttpError(409, 'Há uma cobrança em andamento. Conclua ou cancele antes de mudar a conta.');
+    }
+    // Tirar a taxa de serviço (que estava ligada) pode pedir a senha do gestor (regra TIRAR_TAXA).
+    if (dados.taxaServico === false && resumo.conta.taxaServico) {
+      await exigirAcao(req, 'TIRAR_TAXA');
     }
     let documento: string | null | undefined;
     if (dados.cpfCnpjCliente !== undefined) {

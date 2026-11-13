@@ -16,6 +16,10 @@ const CardapioDaMesa = lazy(() =>
   import('./cliente/CardapioDaMesa').then((m) => ({ default: m.CardapioDaMesa })),
 );
 
+// Delivery e retirada (páginas públicas do cliente). Carregadas à parte, como o cardápio da mesa.
+const Pedir = lazy(() => import('./delivery/Pedir').then((m) => ({ default: m.Pedir })));
+const Acompanhar = lazy(() => import('./delivery/Acompanhar').then((m) => ({ default: m.Acompanhar })));
+
 // Junta as rotas de todos os módulos em src/modules/<modulo>/index.tsx
 const modulos = import.meta.glob<{ rotas: RotaModulo[] }>('./modules/*/index.tsx', {
   eager: true,
@@ -88,6 +92,22 @@ export default function App() {
           element={
             <Suspense fallback={null}>
               <CardapioDaMesa />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/pedir"
+          element={
+            <Suspense fallback={null}>
+              <Pedir />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/pedido/:codigo"
+          element={
+            <Suspense fallback={null}>
+              <Acompanhar />
             </Suspense>
           }
         />

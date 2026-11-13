@@ -60,7 +60,10 @@ function variacao(atual: number, anterior: number): number | null {
   return Math.round(((atual - anterior) / anterior) * 1000) / 10;
 }
 
-function nomeDaMesa(mesa: { numero: number; nome: string | null }): string {
+// Mesa virtual (pedido de delivery ou de retirada) aparece pelo tipo, sem o número interno.
+function nomeDaMesa(mesa: { numero: number; nome: string | null; tipo?: string }): string {
+  if (mesa.tipo === 'DELIVERY') return mesa.nome ? `Delivery · ${mesa.nome}` : 'Delivery';
+  if (mesa.tipo === 'RETIRADA') return mesa.nome ? `Retirada · ${mesa.nome}` : 'Retirada';
   return mesa.nome ? `Mesa ${mesa.numero} · ${mesa.nome}` : `Mesa ${mesa.numero}`;
 }
 
@@ -83,7 +86,10 @@ async function vendas(de: Date, ate: Date): Promise<{ total: number; pedidos: nu
 
 async function ocupacao(): Promise<{ ocupadas: number; total: number; chamando: number }> {
   const [mesas, abertas] = await Promise.all([
-    prisma.mesa.findMany({ where: { ativa: true }, select: { id: true, chamandoDesde: true, estado: true } }),
+    prisma.mesa.findMany({
+      where: { ativa: true, tipo: 'SALAO' },
+      select: { id: true, chamandoDesde: true, estado: true },
+    }),
     prisma.pedido.findMany({
       where: { pagoEm: null, status: { not: 'CANCELADO' } },
       select: { mesaId: true },
@@ -190,7 +196,7 @@ async function cartoesGarcom(): Promise<Cartao[]> {
 async function mesasParaRecepcao() {
   const [mesas, abertas] = await Promise.all([
     prisma.mesa.findMany({
-      where: { ativa: true },
+      where: { ativa: true, tipo: 'SALAO' },
       select: { id: true, numero: true, nome: true, lugares: true, estado: true },
       orderBy: { numero: 'asc' },
     }),
@@ -249,7 +255,10 @@ async function destaqueRecepcao(): Promise<Destaque | null> {
 }
 
 async function cartoesLimpeza(): Promise<Cartao[]> {
-  const mesas = await prisma.mesa.findMany({ where: { ativa: true }, select: { estado: true, estadoDesde: true } });
+  const mesas = await prisma.mesa.findMany({
+    where: { ativa: true, tipo: 'SALAO' },
+    select: { estado: true, estadoDesde: true },
+  });
   const paraLimpar = mesas.filter((m) => m.estado === 'LIMPEZA');
   const maisAntiga = paraLimpar.reduce<Date | null>(
     (menor, m) => (menor === null || m.estadoDesde < menor ? m.estadoDesde : menor),
@@ -294,7 +303,7 @@ async function cartoesLimpeza(): Promise<Cartao[]> {
 
 async function destaqueLimpeza(): Promise<Destaque | null> {
   const mesa = await prisma.mesa.findFirst({
-    where: { estado: 'LIMPEZA', ativa: true },
+    where: { estado: 'LIMPEZA', ativa: true, tipo: 'SALAO' },
     orderBy: { estadoDesde: 'asc' },
     select: { numero: true, nome: true, estadoDesde: true },
   });
@@ -341,7 +350,7 @@ async function destaqueCozinha(): Promise<Destaque | null> {
   const proximo = await prisma.pedido.findFirst({
     where: { status: { in: ['NOVO', 'EM_PREPARO'] } },
     orderBy: { criadoEm: 'asc' },
-    select: { id: true, mesa: { select: { numero: true, nome: true } }, itens: { select: { quantidade: true } } },
+    select: { id: true, mesa: { select: { numero: true, nome: true, tipo: true } }, itens: { select: { quantidade: true } } },
   });
   if (!proximo) return null;
   const itens = proximo.itens.reduce((soma, i) => soma + i.quantidade, 0);
@@ -403,7 +412,7 @@ async function destaqueGarcom(): Promise<Destaque | null> {
   const pronto = await prisma.pedido.findFirst({
     where: { status: 'PRONTO' },
     orderBy: { atualizadoEm: 'asc' },
-    select: { id: true, mesa: { select: { numero: true, nome: true } }, itens: { select: { quantidade: true } } },
+    select: { id: true, mesa: { select: { numero: true, nome: true, tipo: true } }, itens: { select: { quantidade: true } } },
   });
   if (!pronto) return null;
   const itens = pronto.itens.reduce((soma, i) => soma + i.quantidade, 0);
@@ -424,7 +433,7 @@ async function pedidosRecentes() {
       status: true,
       total: true,
       criadoEm: true,
-      mesa: { select: { numero: true, nome: true } },
+      mesa: { select: { numero: true, nome: true, tipo: true } },
       itens: { select: { quantidade: true, nomeProduto: true } },
     },
   });
@@ -474,7 +483,7 @@ router.get(
     }
     if (perfil === 'LIMPEZA') {
       const paraLimpar = await prisma.mesa.findMany({
-        where: { estado: 'LIMPEZA', ativa: true },
+        where: { estado: 'LIMPEZA', ativa: true, tipo: 'SALAO' },
         orderBy: { estadoDesde: 'asc' },
       });
       res.json(
@@ -493,7 +502,11 @@ router.get(
       perfil === 'COZINHA' ? ['NOVO'] : perfil === 'GARCOM' ? ['PRONTO'] : ['NOVO', 'PRONTO'];
     const [chamando, pedidos] = await Promise.all([
       prisma.mesa.findMany({
-        where: { chamandoDesde: perfil === 'COZINHA' ? { equals: new Date(0) } : { not: null }, ativa: true },
+        where: {
+          chamandoDesde: perfil === 'COZINHA' ? { equals: new Date(0) } : { not: null },
+          ativa: true,
+          tipo: 'SALAO',
+        },
         orderBy: { chamandoDesde: 'asc' },
       }),
       prisma.pedido.findMany({
@@ -506,7 +519,7 @@ router.get(
           origem: true,
           criadoEm: true,
           atualizadoEm: true,
-          mesa: { select: { numero: true, nome: true } },
+          mesa: { select: { numero: true, nome: true, tipo: true } },
         },
       }),
     ]);
@@ -587,7 +600,7 @@ router.get(
 
     const numero = /^\d{1,4}$/.test(q) ? Number(q) : null;
     const mesas = u.perfil === 'COZINHA' ? [] : await prisma.mesa.findMany({
-      where: { OR: [{ nome: texto }, ...(numero !== null ? [{ numero }] : [])] },
+      where: { tipo: 'SALAO', OR: [{ nome: texto }, ...(numero !== null ? [{ numero }] : [])] },
       select: { numero: true, nome: true, lugares: true },
       orderBy: { numero: 'asc' },
       take: 4,

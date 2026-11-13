@@ -17,7 +17,7 @@ export const FORMAS_PAGAMENTO = ['Dinheiro', 'Pix', 'Cartão de débito', 'Cart�
 export const incluirPagamento = {
   maquineta: { select: { id: true, nome: true, operadora: true, integracao: true } },
   garcom: { select: { id: true, nome: true } },
-  mesa: { select: { id: true, numero: true, nome: true } },
+  mesa: { select: { id: true, numero: true, nome: true, tipo: true } },
 } satisfies Prisma.PagamentoInclude;
 
 type PagamentoCompleto = Prisma.PagamentoGetPayload<{ include: typeof incluirPagamento }>;
@@ -86,7 +86,7 @@ export async function carregarConta(mesaId: number) {
     aprovados.reduce((soma, p) => soma + Number(p.valor), 0)
   );
   return {
-    mesa: { id: mesa.id, numero: mesa.numero, nome: mesa.nome },
+    mesa: { id: mesa.id, numero: mesa.numero, nome: mesa.nome, tipo: mesa.tipo },
     conta: conta
       ? {
           id: conta.id,

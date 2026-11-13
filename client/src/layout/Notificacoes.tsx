@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDados } from '../lib/useDados';
-import { tempoDesde } from '../lib/restaurante';
+import { mensagemErro, tempoDesde } from '../lib/restaurante';
+import {
+  aoMudarInstalacao,
+  desligarPush,
+  estadoDoPush,
+  estaInstalado,
+  EstadoPush,
+  instalar,
+  ligarPush,
+  podeInstalar,
+  testarPush,
+} from '../lib/push';
+import { Aviso } from '../ui';
 import { Icone } from '../ui/icones';
+import './aplicativo.css';
 
 interface AvisoDTO {
   chave: string;
@@ -23,6 +36,34 @@ export function Notificacoes({ raiz }: { raiz: string }) {
   const [aberto, setAberto] = useState(false);
   const area = useRef<HTMLDivElement>(null);
   const caminhoPedidos = `${raiz}/pedidos`;
+  const [estadoPush, setEstadoPush] = useState<EstadoPush | null>(null);
+  const [ocupadoPush, setOcupadoPush] = useState(false);
+  const [erroPush, setErroPush] = useState<string | null>(null);
+  const [resultadoTeste, setResultadoTeste] = useState<string | null>(null);
+  const [instalavel, setInstalavel] = useState(() => podeInstalar());
+  const [ocupadoInstalar, setOcupadoInstalar] = useState(false);
+  const [erroInstalar, setErroInstalar] = useState<string | null>(null);
+  const ehIphone = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const mostrarDicaIphone = ehIphone && !estaInstalado();
+
+  // Ao abrir o painel, lê o estado das notificações neste aparelho.
+  useEffect(() => {
+    if (!aberto) return;
+    let ativo = true;
+    estadoDoPush()
+      .then((estado) => {
+        if (ativo) setEstadoPush(estado);
+      })
+      .catch(() => {
+        if (ativo) setEstadoPush('INDISPONIVEL');
+      });
+    return () => {
+      ativo = false;
+    };
+  }, [aberto]);
+
+  // Mostra ou esconde o botão de instalar quando o navegador muda a possibilidade.
+  useEffect(() => aoMudarInstalacao(() => setInstalavel(podeInstalar())), []);
 
   useEffect(() => {
     if (!aberto) return;
@@ -60,6 +101,66 @@ export function Notificacoes({ raiz }: { raiz: string }) {
   function abrirAviso(aviso: AvisoDTO) {
     setAberto(false);
     navigate(aviso.caminho);
+  }
+
+  async function atualizarEstadoPush() {
+    try {
+      setEstadoPush(await estadoDoPush());
+    } catch {
+      setEstadoPush('INDISPONIVEL');
+    }
+  }
+
+  async function alternarPush() {
+    if (ocupadoPush || estadoPush === null) return;
+    setOcupadoPush(true);
+    setErroPush(null);
+    setResultadoTeste(null);
+    try {
+      if (estadoPush === 'LIGADO') {
+        await desligarPush();
+      } else {
+        await ligarPush();
+      }
+    } catch (e) {
+      setErroPush(mensagemErro(e));
+    } finally {
+      setOcupadoPush(false);
+      await atualizarEstadoPush();
+    }
+  }
+
+  async function enviarTeste() {
+    if (ocupadoPush) return;
+    setOcupadoPush(true);
+    setErroPush(null);
+    setResultadoTeste(null);
+    try {
+      const enviadas = await testarPush();
+      setResultadoTeste(
+        enviadas > 0
+          ? `Teste enviado para ${enviadas} ${enviadas === 1 ? 'aparelho' : 'aparelhos'}.`
+          : 'Nenhum aparelho recebeu o teste. Desligue e ligue as notificações de novo.'
+      );
+    } catch (e) {
+      setErroPush(mensagemErro(e));
+    } finally {
+      setOcupadoPush(false);
+    }
+  }
+
+  async function instalarApp() {
+    if (ocupadoInstalar) return;
+    setOcupadoInstalar(true);
+    setErroInstalar(null);
+    try {
+      await instalar();
+    } catch (e) {
+      setErroInstalar(mensagemErro(e));
+    } finally {
+      setOcupadoInstalar(false);
+      setInstalavel(podeInstalar());
+    }
   }
 
   return (
@@ -106,6 +207,58 @@ export function Notificacoes({ raiz }: { raiz: string }) {
               </li>
             ))}
           </ul>
+
+          <div className="casca-aparelho">
+            <p className="casca-aparelho-titulo">Neste aparelho</p>
+
+            {estadoPush === 'INDISPONIVEL' ? (
+              <Aviso tipo="info">Este navegador não tem notificações, ou o site não está em HTTPS.</Aviso>
+            ) : (
+              <>
+                <div className="casca-aparelho-linha">
+                  <button
+                    type="button"
+                    className="casca-aparelho-alternar"
+                    aria-pressed={estadoPush === 'LIGADO'}
+                    disabled={ocupadoPush || estadoPush === null || estadoPush === 'BLOQUEADO'}
+                    onClick={alternarPush}
+                  >
+                    Avisar com notificação
+                  </button>
+                  <span className="casca-aparelho-estado">
+                    {estadoPush === 'LIGADO' ? 'Ligado' : estadoPush === 'BLOQUEADO' ? 'Bloqueado' : estadoPush === 'DESLIGADO' ? 'Desligado' : ''}
+                  </span>
+                </div>
+
+                {estadoPush === 'BLOQUEADO' && (
+                  <Aviso tipo="info">
+                    As notificações estão bloqueadas neste navegador. Libere nas configurações do site.
+                  </Aviso>
+                )}
+
+                {estadoPush === 'LIGADO' && (
+                  <button type="button" className="casca-aparelho-acao-texto" disabled={ocupadoPush} onClick={enviarTeste}>
+                    Enviar um teste
+                  </button>
+                )}
+
+                {resultadoTeste && <p className="casca-aparelho-dica">{resultadoTeste}</p>}
+                {erroPush && <Aviso tipo="erro">{erroPush}</Aviso>}
+              </>
+            )}
+
+            {instalavel && (
+              <button type="button" className="casca-aparelho-acao" disabled={ocupadoInstalar} onClick={instalarApp}>
+                Instalar o aplicativo
+              </button>
+            )}
+            {mostrarDicaIphone && (
+              <p className="casca-aparelho-dica">
+                No iPhone: toque em Compartilhar e depois em Adicionar à Tela de Início.
+              </p>
+            )}
+            {erroInstalar && <Aviso tipo="erro">{erroInstalar}</Aviso>}
+          </div>
         </div>
       )}
     </div>

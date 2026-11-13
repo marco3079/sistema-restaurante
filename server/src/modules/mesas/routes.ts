@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { exigirAcao } from '../../lib/autorizacao';
 import { novoCodigoDeMesa } from '../../lib/pedidos';
 import { carregarConta } from '../../lib/pagamentos';
 import { valoresDaConta } from '../../lib/contas';
@@ -71,6 +72,7 @@ async function situacaoDasMesas() {
       },
     }),
     prisma.mesa.findMany({
+      where: { tipo: 'SALAO' },
       orderBy: { numero: 'asc' },
       include: {
         area: {
@@ -300,6 +302,7 @@ router.post(
   equipeDoSalao,
   asyncHandler(async (req, res) => {
     const id = idParam(req);
+    await exigirAcao(req, 'LIBERAR_MESA');
     const liberada = await liberarParaLimpeza(id);
     if (!liberada) {
       throw new HttpError(400, 'Esta mesa tem conta aberta. Receba a conta antes de liberar a mesa.');
@@ -336,7 +339,7 @@ router.get(
   permitir('GESTOR', 'GARCOM', 'LIMPEZA'),
   asyncHandler(async (_req, res) => {
     const mesas = await prisma.mesa.findMany({
-      where: { estado: 'LIMPEZA', ativa: true },
+      where: { estado: 'LIMPEZA', ativa: true, tipo: 'SALAO' },
       orderBy: { estadoDesde: 'asc' },
       select: {
         id: true,

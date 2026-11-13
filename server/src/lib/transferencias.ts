@@ -30,7 +30,10 @@ async function semCobrancaPendente(tx: Tx, contaId: number, acao: string): Promi
 
 // Mesa de destino da troca: ativa, com estado LIVRE e sem conta aberta.
 async function confereMesaLivre(tx: Tx, mesaId: number): Promise<void> {
-  const mesa = await tx.mesa.findUnique({ where: { id: mesaId }, select: { ativa: true, estado: true } });
+  const mesa = await tx.mesa.findUnique({
+    where: { id: mesaId, tipo: 'SALAO' },
+    select: { ativa: true, estado: true },
+  });
   if (!mesa || !mesa.ativa) {
     throw new HttpError(404, 'Mesa de destino não encontrada ou desativada');
   }
@@ -127,7 +130,10 @@ export async function transferirItens(
   if (!origem) {
     throw new HttpError(404, 'Mesa não encontrada');
   }
-  const destino = await prisma.mesa.findUnique({ where: { id: paraMesaId }, select: { ativa: true } });
+  const destino = await prisma.mesa.findUnique({
+    where: { id: paraMesaId, tipo: 'SALAO' },
+    select: { ativa: true },
+  });
   if (!destino || !destino.ativa) {
     throw new HttpError(404, 'Mesa de destino não encontrada ou desativada');
   }

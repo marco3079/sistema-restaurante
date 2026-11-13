@@ -9,6 +9,7 @@ import { Backup } from './Backup';
 import { Cores } from './Cores';
 import { Email } from './Email';
 import { Identidade } from './Identidade';
+import { Permissoes } from './Permissoes';
 import { identidadeDe } from './tipos';
 import type { ConfiguracoesDTO, IdentidadeDados } from './tipos';
 
@@ -18,6 +19,7 @@ const ABAS = [
   { id: 'email', rotulo: 'E-mail' },
   { id: 'atualizacao', rotulo: 'Atualização' },
   { id: 'backup', rotulo: 'Backup' },
+  { id: 'permissoes', rotulo: 'Permissões' },
 ];
 
 export function Configuracoes() {
@@ -109,6 +111,7 @@ export function Configuracoes() {
           </div>
           {aba === 'atualizacao' && <Atualizacao />}
           {aba === 'backup' && <Backup />}
+          {aba === 'permissoes' && <Permissoes />}
         </>
       )}
     </Pagina>

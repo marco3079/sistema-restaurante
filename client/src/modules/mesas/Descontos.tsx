@@ -4,6 +4,7 @@ import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import { lerPreco, mensagemErro, precoParaCampo } from '../../lib/restaurante';
 import type { ContaDTO } from '../../lib/restaurante';
+import type { RegrasDTO } from '../../lib/permissoes';
 import { Aviso, Botao, Campo, formatarMoeda } from '../../ui';
 
 // Configuração da fidelidade (GET /fidelidade/configuracao).
@@ -36,6 +37,11 @@ export function Descontos({
 }) {
   const { usuario } = useAuth();
   const gestor = usuario?.perfil === 'GESTOR';
+  // Garçom: o desconto aparece só se a regra DESCONTO_MANUAL não for "só o gestor".
+  // Erro na leitura das regras conta como "só o gestor".
+  const minhas = useDados<RegrasDTO>(gestor ? null : '/permissoes/minhas');
+  const descontoLiberado =
+    gestor || (minhas.dados?.regras?.DESCONTO_MANUAL ?? 'SO_GESTOR') !== 'SO_GESTOR';
   const cliente = conta.conta?.cliente ?? null;
   const cupom = conta.conta?.cupom ?? null;
   const pontosUsados = conta.conta?.pontosUsados ?? 0;
@@ -269,9 +275,9 @@ export function Descontos({
         </div>
 
         {/* Desconto do gestor */}
-        {gestor && (
+        {descontoLiberado && (
           <div className="mesas-bloco">
-            <p className="mesas-subtitulo">Desconto do gestor</p>
+            <p className="mesas-subtitulo">{gestor ? 'Desconto do gestor' : 'Desconto'}</p>
             <Campo rotulo="Desconto (R$)" valor={valorDesconto} aoMudar={setValorDesconto} />
             <Campo rotulo="Motivo" valor={motivo} aoMudar={setMotivo} />
             <div className="mesas-linha">

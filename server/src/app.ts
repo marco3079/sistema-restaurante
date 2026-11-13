@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { HttpError } from './lib/erros';
 import { autenticar } from './lib/auth';
 import { descreverRequisicao, iniciarLimpezaDeLogs, registrarLog } from './lib/log';
+import { publicarMudanca } from './lib/eventos';
 
 interface ModuloRotas {
   publico?: Router;
@@ -104,12 +105,59 @@ function registrarAtividade(req: Request, res: Response, next: NextFunction): vo
   next();
 }
 
+const METODOS_DE_MUDANCA = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+// Avisa os ouvintes de eventos quando uma mudança bem-sucedida é gravada pela API (depois da resposta).
+// Os ouvintes só precisam saber a situação nova de um pedido e o tipo do pedido de delivery.
+// O corpo inteiro NUNCA é repassado: ele pode trazer senhas (troca de senha, cadastro de usuário) e dados de clientes.
+function corpoParaOuvintes(corpo: unknown): { status?: string; tipo?: string } {
+  if (typeof corpo !== 'object' || corpo === null) return {};
+  const { status, tipo } = corpo as { status?: unknown; tipo?: unknown };
+  return {
+    ...(typeof status === 'string' ? { status } : {}),
+    ...(typeof tipo === 'string' ? { tipo } : {}),
+  };
+}
+
+function avisarMudancas(req: Request, res: Response, next: NextFunction): void {
+  // Capturados antes da resposta, pelo mesmo motivo de registrarAtividade.
+  const caminho = req.originalUrl.split('?')[0];
+  const metodo = req.method;
+  res.on('finish', () => {
+    try {
+      if (!caminho.startsWith('/api/') || !METODOS_DE_MUDANCA.includes(metodo) || res.statusCode >= 400) {
+        return;
+      }
+      if (
+        caminho.startsWith('/api/auth/') ||
+        caminho.startsWith('/api/logs') ||
+        caminho.startsWith('/api/push/')
+      ) {
+        return;
+      }
+      publicarMudanca({
+        metodo,
+        caminho,
+        modulo: caminho.slice('/api/'.length).split('/')[0],
+        status: res.statusCode,
+        corpo: corpoParaOuvintes(req.body),
+        usuarioId: req.usuario?.id ?? null,
+        perfil: req.usuario?.perfil ?? null,
+      });
+    } catch (erro) {
+      console.error('Falha ao publicar mudança:', erro instanceof Error ? erro.message : erro);
+    }
+  });
+  next();
+}
+
 export function criarApp() {
   const app = express();
   app.set('trust proxy', 1);
   app.use(cors());
   app.use(express.json({ limit: '1mb' }));
   app.use(registrarAtividade);
+  app.use(avisarMudancas);
   iniciarLimpezaDeLogs();
 
   const modulos = carregarModulos();

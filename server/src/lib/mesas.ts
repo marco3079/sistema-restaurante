@@ -25,6 +25,15 @@ export async function liberarParaLimpeza(mesaId: number, aposPagamento = false):
     where: { mesaId, status: 'ABERTA' },
     data: { status: 'FECHADA', fechadaEm: new Date() },
   });
+  // Mesa virtual (delivery ou retirada) não vai para a limpeza: é encerrada.
+  const mesa = await prisma.mesa.findUnique({ where: { id: mesaId }, select: { tipo: true } });
+  if (mesa && mesa.tipo !== 'SALAO') {
+    await prisma.mesa.update({
+      where: { id: mesaId },
+      data: { estado: 'LIVRE', estadoDesde: new Date(), chamandoDesde: null, ativa: false },
+    });
+    return true;
+  }
   await prisma.mesa.updateMany({
     where: { id: mesaId, estado: aposPagamento ? { not: 'LIMPEZA' } : 'OCUPADA' },
     data: { estado: 'LIMPEZA', estadoDesde: new Date(), chamandoDesde: null },

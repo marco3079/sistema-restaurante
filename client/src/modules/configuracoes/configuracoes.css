@@ -575,3 +575,22 @@
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
+
+/* Aba Permissões: senha do gestor e regras do garçom. Empilha no celular. */
+
+.permissoes-texto-suave {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.permissoes-situacao {
+  margin: 0.25rem 0 0.75rem;
+  color: var(--cor-texto);
+}
+
+.permissoes-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}

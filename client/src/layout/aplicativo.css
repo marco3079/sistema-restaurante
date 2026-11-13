@@ -1,0 +1,106 @@
+/* Bloco "Neste aparelho" do painel de avisos: notificações no celular e instalação do aplicativo.
+   Só variáveis do contrato visual (estilo.css). Funciona no tema escuro e em 360 px. */
+
+.casca-aparelho {
+  margin-top: 0.5rem;
+  padding: 0.75rem 0.5rem 0.25rem;
+  border-top: 1px solid var(--cor-borda);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.casca-aparelho-titulo {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--cor-texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.casca-aparelho-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.casca-aparelho-rotulo {
+  font-size: 0.92rem;
+  color: var(--cor-texto);
+  min-width: 0;
+}
+
+.casca-aparelho-estado {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--cor-texto-suave);
+}
+
+.casca-aparelho-alternar {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.casca-aparelho-alternar[aria-pressed='true'] {
+  background: var(--cor-primaria-suave);
+  border-color: var(--cor-primaria);
+  color: var(--cor-primaria);
+  font-weight: 700;
+}
+
+.casca-aparelho-alternar:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.casca-aparelho-acao {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0.4rem 0.8rem;
+  border: 0;
+  border-radius: var(--raio-pequeno);
+  background: var(--gradiente-primario);
+  color: var(--cor-sobre-primaria);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.casca-aparelho-acao-texto {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0.4rem 0;
+  border: 0;
+  background: transparent;
+  color: var(--cor-primaria);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.casca-aparelho-acao:disabled,
+.casca-aparelho-acao-texto:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.casca-aparelho-dica {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--cor-texto-suave);
+}

@@ -157,6 +157,13 @@ enum UnidadeInsumo {
   UN
 }
 
+// SALAO: mesa de verdade. DELIVERY e RETIRADA: mesa virtual de um pedido para entregar ou retirar no balcão.
+enum TipoMesa {
+  SALAO
+  DELIVERY
+  RETIRADA
+}
+
 // ---------- Pessoas ----------
 
 model Usuario {
@@ -173,12 +180,13 @@ model Usuario {
   setorId   Int?
   setor     Setor?   @relation(fields: [setorId], references: [id])
 
-  pedidos    Pedido[]
-  areas      Area[]          @relation("GarconsDaArea")
-  maquinetas Maquineta[]
-  pagamentos Pagamento[]
-  turnos     Turno[]
-  pontos     RegistroPonto[]
+  pedidos        Pedido[]
+  areas          Area[]          @relation("GarconsDaArea")
+  maquinetas     Maquineta[]
+  pagamentos     Pagamento[]
+  turnos         Turno[]
+  pontos         RegistroPonto[]
+  inscricoesPush InscricaoPush[]
 }
 
 // ---------- Cardápio ----------
@@ -269,11 +277,14 @@ model Mesa {
   posX          Float? // centro da mesa na planta, de 0 a 1 (fração da largura); null = fora da planta
   posY          Float?
   criadaEm      DateTime   @default(now())
+  tipo          TipoMesa   @default(SALAO)
 
   pedidos    Pedido[]
   pagamentos Pagamento[]
   contas     Conta[]
   reservas   Reserva[]
+
+  @@index([tipo, ativa])
 }
 
 // Área do salão (ex.: Varanda, Salão principal). Pode ter mais de um garçom responsável.
@@ -326,6 +337,7 @@ model Pedido {
 
   itens   ItemPedido[]
   setores PedidoSetor[]
+  entrega Entrega?
 
   @@index([mesaId, pagoEm])
   @@index([status, criadoEm])
@@ -371,6 +383,7 @@ model Conta {
   valorDoPonto   Decimal     @default(0) @db.Decimal(8, 4)
   descontoManual Decimal     @default(0) @db.Decimal(10, 2)
   descontoMotivo String?
+  taxaEntrega    Decimal     @default(0) @db.Decimal(10, 2)
 
   pedidos    Pedido[]
   pagamentos Pagamento[]
@@ -869,6 +882,53 @@ model PedidoSetor {
   @@unique([pedidoId, setorId])
 }
 
+// ---------- Delivery e retirada ----------
+
+model BairroEntrega {
+  id    Int     @id @default(autoincrement())
+  nome  String  @unique
+  taxa  Decimal @db.Decimal(10, 2)
+  ativo Boolean @default(true)
+}
+
+// Dados de entrega (ou retirada) de um pedido feito pelo cardápio de delivery.
+model Entrega {
+  id             Int       @id @default(autoincrement())
+  pedidoId       Int       @unique
+  pedido         Pedido    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  tipo           TipoMesa // DELIVERY ou RETIRADA
+  codigo         String    @unique // segredo do endereço de acompanhamento
+  nomeCliente    String
+  telefone       String // só dígitos
+  endereco       String? // rua e número
+  complemento    String?
+  bairro         String? // nome do bairro no momento do pedido
+  referencia     String?
+  taxaEntrega    Decimal   @default(0) @db.Decimal(10, 2)
+  formaPagamento String // como o cliente vai pagar na entrega ou na retirada
+  trocoPara      Decimal?  @db.Decimal(10, 2)
+  saiuEm         DateTime? // saiu para entrega
+  concluidoEm    DateTime? // entregue ou retirado
+  entregadorNome String?
+  criadoEm       DateTime  @default(now())
+
+  @@index([criadoEm])
+}
+
+// ---------- Notificações no celular ----------
+
+model InscricaoPush {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int
+  usuario   Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  criadoEm  DateTime @default(now())
+
+  @@index([usuarioId])
+}
+
 // ---------- Log de atividades ----------
 
 // Um registro por atividade na plataforma. Visível só para o GESTOR.
@@ -944,6 +1004,25 @@ model ConfiguracaoPlataforma {
   fiscalCfopPadrao          String         @default("5102")
   fiscalCsosnPadrao         String         @default("102")
   fiscalClasseImposto       String? // referência da classe de imposto (WebmaniaBR)
+
+  // Delivery e retirada no balcão.
+  deliveryAtivo        Boolean @default(false)
+  retiradaAtiva        Boolean @default(false)
+  deliveryPedidoMinimo Decimal @default(0) @db.Decimal(10, 2)
+  deliveryTempoMin     Int     @default(50) // tempo estimado de entrega, em minutos
+  retiradaTempoMin     Int     @default(25)
+  deliveryAviso        String? // recado no topo do cardápio de delivery (ex.: horário de atendimento)
+
+  // Pedido parado além deste tempo (minutos) aparece como atrasado. 0 = sem alerta.
+  alertaAtrasoMin Int @default(20)
+
+  // Ações sensíveis: senha do gestor (só o hash) e o que cada ação exige de quem não é gestor.
+  pinHash     String?
+  regrasAcoes Json?
+
+  // Notificações no celular (Web Push). A chave privada fica cifrada.
+  vapidPublica        String?
+  vapidPrivadaCifrada String?
 
   atualizadoEm DateTime @updatedAt
 }

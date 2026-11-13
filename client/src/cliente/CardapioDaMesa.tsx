@@ -6,6 +6,7 @@ import { usePlataforma } from '../lib/plataforma';
 import { useTema } from '../lib/tema';
 import { useDados } from '../lib/useDados';
 import { useAtualizacao } from '../lib/useAtualizacao';
+import { assinarMesa, rajada } from '../lib/tempoReal';
 import { STATUS_PEDIDO, horaCurta, mensagemErro } from '../lib/restaurante';
 import type { StatusPedido } from '../lib/restaurante';
 import { PerfilDoPrato, PrecoDoPrato, gruposComOpcoes, grupoPendente, somaDasOpcoes } from './PerfilDoPrato';
@@ -217,6 +218,20 @@ export function CardapioDaMesa() {
   // Cardápio e pedidos se atualizam sozinhos: item esgotado some e a situação do pedido muda na tela.
   useAtualizacao(pedidos.recarregar, 10000);
   useAtualizacao(cardapio.recarregar, 60000);
+
+  // Tempo real da mesa (sem login): quando o servidor avisa uma mudança, recarrega pedidos e cardápio (no máximo a cada 400 ms).
+  useEffect(() => {
+    if (!codigo) return;
+    const juntado = rajada(() => {
+      pedidos.recarregar();
+      cardapio.recarregar();
+    }, 400);
+    const pararDeOuvir = assinarMesa(codigo, () => juntado.disparar());
+    return () => {
+      pararDeOuvir();
+      juntado.cancelar();
+    };
+  }, [codigo, pedidos.recarregar, cardapio.recarregar]);
 
   useEffect(() => {
     try {

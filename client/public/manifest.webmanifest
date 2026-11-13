@@ -1,8 +1,13 @@
 {
+  "id": "/",
   "name": "Sistema de Restaurante",
   "short_name": "Restaurante",
+  "description": "Pedidos, mesas e cozinha do restaurante.",
   "start_url": "/",
+  "scope": "/",
+  "lang": "pt-BR",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#1d4ed8",
   "icons": [
@@ -13,10 +18,22 @@
       "purpose": "any"
     },
     {
+      "src": "/logo-simbolo-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/logo-simbolo-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/logo-simbolo-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/logo-simbolo.svg",

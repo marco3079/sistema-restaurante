@@ -4,6 +4,7 @@ import type { Prisma, StatusPedido } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { exigirAcao } from '../../lib/autorizacao';
 import { devolverPorPedido } from '../../lib/estoque';
 import { devolverInsumosPorPedido } from '../../lib/insumos';
 import { fecharSeQuitada } from '../../lib/pagamentos';
@@ -188,6 +189,10 @@ router.put(
             : 'Quem inicia o preparo e marca como pronto é a cozinha.'
         );
       }
+    }
+    // Cancelar pode pedir a senha do gestor (regra CANCELAR_PEDIDO).
+    if (status === 'CANCELADO') {
+      await exigirAcao(req, 'CANCELAR_PEDIDO');
     }
     // Horas da operação: quando a cozinha começou, quando ficou pronto e quando foi entregue.
     const agora = new Date();

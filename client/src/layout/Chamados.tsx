@@ -4,34 +4,12 @@ import { useDados } from '../lib/useDados';
 import { useAtualizacao } from '../lib/useAtualizacao';
 import { nomeDaMesa, tempoDesde } from '../lib/restaurante';
 import type { ChamadoDTO } from '../lib/restaurante';
+import { tocar } from '../lib/som';
 import { Icone } from '../ui/icones';
 
 const INTERVALO_MS = 5000;
 // Depois de "Agora não", o mesmo chamado volta a aparecer se a mesa continuar esperando.
 const REAVISAR_MS = 2 * 60 * 1000;
-
-// Dois toques curtos. Sem som se o navegador ainda não deixou tocar (antes do primeiro clique).
-function tocarAviso(): void {
-  try {
-    const Contexto = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Contexto) return;
-    const audio = new Contexto();
-    [0, 0.22].forEach((inicio) => {
-      const oscilador = audio.createOscillator();
-      const volume = audio.createGain();
-      oscilador.frequency.value = 880;
-      volume.gain.setValueAtTime(0.0001, audio.currentTime + inicio);
-      volume.gain.exponentialRampToValueAtTime(0.25, audio.currentTime + inicio + 0.02);
-      volume.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + inicio + 0.18);
-      oscilador.connect(volume).connect(audio.destination);
-      oscilador.start(audio.currentTime + inicio);
-      oscilador.stop(audio.currentTime + inicio + 0.2);
-    });
-    window.setTimeout(() => void audio.close(), 800);
-  } catch {
-    // Sem áudio: o popup aparece do mesmo jeito.
-  }
-}
 
 // Popup que avisa o garçom responsável quando a mesa dele chama. Mesa sem responsável avisa todos os garçons.
 export function Chamados() {
@@ -40,7 +18,8 @@ export function Chamados() {
   const [adiados, setAdiados] = useState<Record<string, number>>({});
   const [agora, setAgora] = useState(() => Date.now());
   const [ocupado, setOcupado] = useState<number | null>(null);
-  const jaTocou = useRef(new Set<string>());
+  // Mesas da lista anterior; null até a primeira carga (que não toca).
+  const mesasAnteriores = useRef<Set<number> | null>(null);
 
   useAtualizacao(recarregar, INTERVALO_MS);
   useEffect(() => {
@@ -54,13 +33,14 @@ export function Chamados() {
     return adiadoEm === undefined || agora - adiadoEm >= REAVISAR_MS;
   });
 
-  // Toca uma vez por chamado novo.
+  // Toca quando aparece uma mesa que não estava na lista anterior.
   useEffect(() => {
-    const novos = visiveis.filter((c) => !jaTocou.current.has(chave(c)));
-    if (novos.length === 0) return;
-    novos.forEach((c) => jaTocou.current.add(chave(c)));
-    tocarAviso();
-  }, [visiveis]);
+    if (!dados) return;
+    const anteriores = mesasAnteriores.current;
+    mesasAnteriores.current = new Set(dados.map((c) => c.mesaId));
+    if (anteriores === null) return;
+    if (dados.some((c) => !anteriores.has(c.mesaId))) tocar('chamado', { sempre: true });
+  }, [dados]);
 
   if (visiveis.length === 0) return null;
 

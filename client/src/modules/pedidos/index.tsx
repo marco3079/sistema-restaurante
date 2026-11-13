@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../lib/auth';
 import { useDados } from '../../lib/useDados';
 import { useAtualizacao } from '../../lib/useAtualizacao';
+import { api } from '../../lib/api';
 import type { RotaModulo } from '../../lib/rotas';
-import { STATUS_PEDIDO, horaCurta, nomeDaMesa } from '../../lib/restaurante';
+import { STATUS_PEDIDO, horaCurta, mensagemErro, nomeDaMesa } from '../../lib/restaurante';
 import type { MesaDTO, PedidoDTO, SetorDTO, StatusPedido } from '../../lib/restaurante';
-import { Aviso, Botao, Caixa, Carregando, Pagina, Selecao, Tabela, formatarData, formatarMoeda } from '../../ui';
+import { Aviso, Botao, Campo, Caixa, Carregando, Pagina, Selecao, Tabela, formatarData, formatarMoeda } from '../../ui';
 import { imprimirComanda } from '../../lib/imprimir';
+import { destravarSom, ligarSom, somLigado, tocar } from '../../lib/som';
 import { CartaoPedido, Indicador, NovoPedido, SeloStatus, situacaoDaFila } from './comum';
 import type { SetorDaPessoa } from './comum';
 
@@ -30,6 +32,26 @@ function resumoDosItens(p: PedidoDTO): string {
 }
 
 const CHAVE_AUTO_IMPRIMIR = 'pedidos-imprimir-sozinho';
+
+// Minutos desde que o pedido entrou, se ele está atrasado (NOVO ou EM_PREPARO há mais que o limite).
+// Limite 0 = sem alerta.
+function minutosAtrasado(p: PedidoDTO, situacao: StatusPedido, limiteMin: number, agora: Date): number | undefined {
+  if (limiteMin <= 0) return undefined;
+  if (situacao !== 'NOVO' && situacao !== 'EM_PREPARO') return undefined;
+  const minutos = Math.floor((agora.getTime() - new Date(p.criadoEm).getTime()) / 60000);
+  return minutos > limiteMin ? minutos : undefined;
+}
+
+interface ConfiguracaoOperacao {
+  alertaAtrasoMin: number;
+}
+
+// Memória dos avisos: a tela (mesa e setor) e o que já se viu nela.
+interface AvisosAnteriores {
+  chave: string;
+  pedidos: Map<number, PedidoDTO>;
+  atrasados: Set<number>;
+}
 
 export function Pedidos() {
   const { usuario } = useAuth();
@@ -108,6 +130,101 @@ export function Pedidos() {
   const contar = (s: StatusPedido) => lista.filter((p) => situacaoDe(p) === s).length;
   const titulo = cozinha ? (setorMeu ? `Fila do setor: ${setorMeu.nome}` : 'Fila da cozinha') : 'Pedidos';
 
+  // Alerta de atraso: lido uma vez (e de novo só quando o gestor salva).
+  const configuracao = useDados<ConfiguracaoOperacao>('/operacao/configuracao');
+  const alertaMin = configuracao.dados?.alertaAtrasoMin ?? 0;
+  const [alertaTexto, setAlertaTexto] = useState('');
+  const [alertaSalvando, setAlertaSalvando] = useState(false);
+  useEffect(() => {
+    if (configuracao.dados) setAlertaTexto(String(configuracao.dados.alertaAtrasoMin));
+  }, [configuracao.dados]);
+  const minutosDe = (p: PedidoDTO) => minutosAtrasado(p, situacaoDe(p), alertaMin, agora);
+  const totalAtrasados = lista.filter((p) => minutosDe(p) !== undefined).length;
+
+  // Som da fila: desligado por padrão, guardado neste aparelho.
+  const [somOn, setSomOn] = useState(() => somLigado());
+  function mudarSom() {
+    const ligar = !somOn;
+    if (ligar) destravarSom();
+    ligarSom(ligar);
+    setSomOn(ligar);
+    if (ligar) tocar('novoPedido');
+  }
+
+  // Novos pedidos, pedidos prontos e atrasos. A primeira carga da tela não toca nada.
+  const avisosAnteriores = useRef<AvisosAnteriores | null>(null);
+  useEffect(() => {
+    if (!pedidos.dados) return;
+    if (visao !== 'andamento') {
+      avisosAnteriores.current = null;
+      return;
+    }
+    if (cozinha && setorMeuDados.carregando) return;
+    if (configuracao.carregando) return;
+    const chaveAtual = `${mesaId}|${setorMeu?.id ?? ''}`;
+    const anterior = avisosAnteriores.current;
+    const mesmaTela = anterior !== null && anterior.chave === chaveAtual;
+    const atrasados = new Set<number>();
+    let soarNovo = false;
+    let soarPronto = false;
+    let soarAtraso = false;
+    for (const p of pedidos.dados) {
+      const situacao = situacaoDaFila(p, setorMeu);
+      if (minutosAtrasado(p, situacao, alertaMin, agora) !== undefined) {
+        if (mesmaTela && !anterior.atrasados.has(p.id)) soarAtraso = true;
+        atrasados.add(p.id);
+      }
+      if (!mesmaTela) continue;
+      const antes = anterior.pedidos.get(p.id);
+      if (cozinha) {
+        // Cozinha com setor: conta só a parte do setor dela que acabou de chegar.
+        const parteNova = !antes || (setorMeu !== null && !antes.setores?.some((s) => s.setorId === setorMeu.id));
+        if (situacao === 'NOVO' && parteNova) soarNovo = true;
+      } else if (antes && antes.status !== 'PRONTO' && p.status === 'PRONTO') {
+        soarPronto = true;
+      }
+    }
+    avisosAnteriores.current = {
+      chave: chaveAtual,
+      pedidos: new Map(pedidos.dados.map((p) => [p.id, p])),
+      atrasados,
+    };
+    if (!mesmaTela) return;
+    if (soarNovo) tocar('novoPedido');
+    else if (soarPronto) tocar('pronto');
+    if (soarAtraso) tocar('atraso');
+  }, [
+    pedidos.dados,
+    visao,
+    mesaId,
+    cozinha,
+    setorMeu,
+    setorMeuDados.carregando,
+    configuracao.carregando,
+    alertaMin,
+    agora,
+  ]);
+
+  async function salvarAlerta() {
+    setErroAcao(null);
+    const texto = alertaTexto.trim();
+    const numero = Number(texto);
+    if (texto === '' || !Number.isInteger(numero) || numero < 0 || numero > 240) {
+      setErroAcao('Informe um número inteiro de 0 a 240. Use 0 para desligar o alerta.');
+      return;
+    }
+    setAlertaSalvando(true);
+    try {
+      await api.put('/operacao/configuracao', { alertaAtrasoMin: numero });
+      configuracao.recarregar();
+      setAviso('Alerta de atraso salvo.');
+    } catch (e) {
+      setErroAcao(mensagemErro(e));
+    } finally {
+      setAlertaSalvando(false);
+    }
+  }
+
   function aposMudanca() {
     setErroAcao(null);
     pedidos.recarregar();
@@ -123,6 +240,7 @@ export function Pedidos() {
           <Indicador rotulo="Novos" valor={String(contar('NOVO'))} cor="azul" icone="pedidos" />
           <Indicador rotulo="Em preparo" valor={String(contar('EM_PREPARO'))} cor="laranja" icone="relogio" />
           <Indicador rotulo="Prontos para entregar" valor={String(contar('PRONTO'))} cor="verde" icone="visto" />
+          <Indicador rotulo="Atrasados" valor={String(totalAtrasados)} cor="vermelho" icone="relogio" />
           <Indicador
             rotulo="Valor na fila"
             valor={formatarMoeda(lista.reduce((soma, p) => soma + p.total, 0))}
@@ -168,10 +286,34 @@ export function Pedidos() {
           {visao === 'andamento' && (
             <Caixa rotulo="Imprimir os pedidos novos sozinho" marcado={autoImprimir} aoMudar={mudarAutoImprimir} />
           )}
+          {visao === 'andamento' && (
+            <button
+              type="button"
+              className="botao botao-secundario pedido-som-ligado"
+              aria-pressed={somOn}
+              onClick={mudarSom}
+            >
+              {somOn ? 'Som ligado' : 'Som desligado'}
+            </button>
+          )}
           {visao !== 'andamento' && (
             <Selecao rotulo="Situação" valor={status} aoMudar={setStatus} vazio="Todas" opcoes={STATUS_OPCOES} />
           )}
         </div>
+        {visao === 'andamento' && usuario?.perfil === 'GESTOR' && (
+          <div className="alerta-atraso-config">
+            <Campo
+              rotulo="Alerta de atraso (min)"
+              tipo="number"
+              valor={alertaTexto}
+              aoMudar={setAlertaTexto}
+            />
+            <Botao variante="secundario" desabilitado={alertaSalvando} aoClicar={() => void salvarAlerta()}>
+              Salvar
+            </Botao>
+            <p className="alerta-atraso-ajuda">Pedido que passar desse tempo sem ficar pronto aparece como atrasado. Use 0 para desligar.</p>
+          </div>
+        )}
       </div>
 
       {aviso && <Aviso tipo="sucesso">{aviso}</Aviso>}
@@ -198,6 +340,7 @@ export function Pedidos() {
                     aoMudar={aposMudanca}
                     aoErro={setErroAcao}
                     setor={setorMeu}
+                    atrasoMin={minutosDe(p)}
                   />
                 ))}
               </section>

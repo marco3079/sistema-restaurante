@@ -12,6 +12,7 @@ import { Chamados } from './Chamados';
 import { agrupar } from './grupos';
 import { MenuUsuario } from './MenuUsuario';
 import { Notificacoes } from './Notificacoes';
+import { SenhaGestor } from './SenhaGestor';
 import './casca.css';
 
 const CONSULTA_CELULAR = '(max-width: 899px)';
@@ -166,6 +167,8 @@ export function Layout({ menu }: { menu: RotaModulo[] }) {
       </main>
 
       {(usuario.perfil === 'GESTOR' || usuario.perfil === 'GARCOM') && <Chamados />}
+
+      <SenhaGestor />
 
       {estreita && (
         <nav className="casca-inferior" aria-label="Menu rápido">

@@ -142,6 +142,7 @@ export function CartaoPedido({
   aoMudar,
   aoErro,
   setor,
+  atrasoMin,
 }: {
   pedido: PedidoDTO;
   agora: Date;
@@ -149,6 +150,8 @@ export function CartaoPedido({
   aoErro: (mensagem: string) => void;
   // Cozinha com setor: o cartão segue a parte do setor e mostra só os itens dele.
   setor?: SetorDaPessoa | null;
+  // Minutos desde que o pedido entrou, quando ele está atrasado. Sem valor, não há alerta.
+  atrasoMin?: number;
 }) {
   const { usuario } = useAuth();
   const perfil = usuario?.perfil;
@@ -196,7 +199,8 @@ export function CartaoPedido({
       : `Lançado por ${pedido.garcom?.nome ?? 'equipe'}${pedido.nomeCliente ? ` · ${pedido.nomeCliente}` : ''}`;
 
   return (
-    <article className="pedido">
+    <article className={atrasoMin !== undefined ? 'pedido pedido-atrasado' : 'pedido'}>
+      {atrasoMin !== undefined && <span className="pedido-atraso">Atrasado: {atrasoMin} min</span>}
       <div className="pedido-topo">
         <div>
           <h3 className="pedido-mesa">{nomeDaMesa(pedido.mesa)}</h3>

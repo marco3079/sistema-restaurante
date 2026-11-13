@@ -1,0 +1,195 @@
+/* Delivery e retirada (equipe). Só variáveis de ui/estilo.css; funciona no tema escuro e em 360 px. */
+
+.entrega-fila {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .entrega-fila {
+    grid-template-columns: 1fr;
+  }
+}
+
+.entrega-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.entrega-coluna-titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--cor-texto);
+}
+
+.entrega-contagem {
+  min-width: 1.6rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto-suave);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.entrega-vazio,
+.entrega-vazio-coluna {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+.entrega-cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  min-width: 0;
+}
+
+.entrega-topo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.entrega-identificacao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.entrega-nome {
+  margin: 0.2rem 0 0;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+}
+
+.entrega-telefone {
+  color: var(--cor-primaria);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.entrega-meta {
+  color: var(--cor-texto-suave);
+  font-size: 0.8rem;
+}
+
+.entrega-selo-retirada {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--cor-roxo-suave);
+  color: var(--cor-roxo);
+}
+
+.entrega-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.entrega-bloco p {
+  margin: 0;
+}
+
+.entrega-bloco .botao-texto {
+  align-self: flex-start;
+}
+
+.entrega-observacao {
+  margin: 0;
+  padding: 0.5rem 0.6rem;
+  border-left: 3px solid var(--cor-aviso);
+  background: var(--cor-laranja-suave);
+  color: var(--cor-texto);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.entrega-valores {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--cor-borda);
+  font-size: 0.9rem;
+}
+
+.entrega-linha {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.entrega-linha span:last-child {
+  white-space: nowrap;
+}
+
+.entrega-total {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.entrega-pagamento {
+  margin: 0;
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.entrega-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.entrega-espera {
+  color: var(--cor-texto-suave);
+  font-size: 0.85rem;
+  margin-right: auto;
+}
+
+.entrega-texto {
+  color: var(--cor-texto-suave);
+  font-size: 0.9rem;
+}
+
+.entrega-endereco {
+  overflow-wrap: anywhere;
+}
+
+.entrega-endereco code {
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--raio-pequeno);
+  background: var(--cor-superficie-2);
+  color: var(--cor-texto);
+}
+
+.entrega-sem-quebra {
+  white-space: nowrap;
+}

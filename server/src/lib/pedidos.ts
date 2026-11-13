@@ -31,9 +31,10 @@ export type ItemEntrada = z.infer<typeof itensSchema>[number];
 
 export const incluirPedido = {
   itens: { orderBy: { id: 'asc' } },
-  mesa: { select: { id: true, numero: true, nome: true } },
+  mesa: { select: { id: true, numero: true, nome: true, tipo: true } },
   garcom: { select: { id: true, nome: true } },
   setores: { include: { setor: { select: { id: true, nome: true, cor: true } } }, orderBy: { setorId: 'asc' } },
+  entrega: true,
 } satisfies Prisma.PedidoInclude;
 
 type PedidoCompleto = Prisma.PedidoGetPayload<{ include: typeof incluirPedido }>;
@@ -47,9 +48,10 @@ function lerOpcoes(valor: unknown): { grupo: string; opcao: string; precoExtra: 
 }
 
 export function paraPedidoDTO(p: PedidoCompleto) {
+  const e = p.entrega;
   return {
     id: p.id,
-    mesa: p.mesa,
+    mesa: { id: p.mesa.id, numero: p.mesa.numero, nome: p.mesa.nome, tipo: p.mesa.tipo },
     status: p.status,
     origem: p.origem,
     nomeCliente: p.nomeCliente,
@@ -60,6 +62,24 @@ export function paraPedidoDTO(p: PedidoCompleto) {
     formaPagamento: p.formaPagamento,
     criadoEm: p.criadoEm.toISOString(),
     atualizadoEm: p.atualizadoEm.toISOString(),
+    entrega: e
+      ? {
+          tipo: e.tipo,
+          codigo: e.codigo,
+          nomeCliente: e.nomeCliente,
+          telefone: e.telefone,
+          endereco: e.endereco,
+          complemento: e.complemento,
+          bairro: e.bairro,
+          referencia: e.referencia,
+          taxaEntrega: Number(e.taxaEntrega),
+          formaPagamento: e.formaPagamento,
+          trocoPara: e.trocoPara === null ? null : Number(e.trocoPara),
+          saiuEm: e.saiuEm ? e.saiuEm.toISOString() : null,
+          concluidoEm: e.concluidoEm ? e.concluidoEm.toISOString() : null,
+          entregadorNome: e.entregadorNome,
+        }
+      : null,
     setores: p.setores.map((s) => ({
       setorId: s.setorId,
       nome: s.setor.nome,
@@ -141,6 +161,8 @@ export async function criarPedido(entrada: {
   nomeCliente?: string | null;
   observacao?: string | null;
   garcomId?: number | null;
+  // Conta já aberta pelo chamador (ex.: delivery, com a taxa de entrega). Sem ele, usa a conta da mesa.
+  contaId?: number;
 }): Promise<PedidoDTO> {
   // Junta linhas repetidas do mesmo produto sem observação.
   const ids = [...new Set(entrada.itens.map((i) => i.produtoId))];
@@ -185,13 +207,13 @@ export async function criarPedido(entrada: {
     };
   });
 
-  const conta = await garantirConta(entrada.mesaId);
+  const contaId = entrada.contaId ?? (await garantirConta(entrada.mesaId)).id;
   // O pedido e a baixa do estoque entram juntos: se faltar estoque, o pedido não é criado.
   const pedido = await prisma.$transaction(async (tx) => {
     const criado = await tx.pedido.create({
       data: {
         mesaId: entrada.mesaId,
-        contaId: conta.id,
+        contaId,
         origem: entrada.origem,
         nomeCliente: textoOuNulo(entrada.nomeCliente),
         observacao: textoOuNulo(entrada.observacao),

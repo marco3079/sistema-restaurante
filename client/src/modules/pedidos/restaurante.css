@@ -1050,3 +1050,44 @@
   font-size: 0.85rem;
   color: var(--cor-texto-suave);
 }
+
+/* Som e alerta de atraso */
+.pedido-atrasado {
+  border-color: var(--cor-perigo);
+  box-shadow: inset 4px 0 0 var(--cor-perigo), var(--sombra);
+}
+
+.pedido-atraso {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--cor-perigo);
+  background: color-mix(in srgb, var(--cor-perigo) 14%, transparent);
+}
+
+.pedido-som-ligado {
+  white-space: nowrap;
+}
+
+.alerta-atraso-config {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.alerta-atraso-config .campo {
+  min-width: 0;
+  max-width: 9rem;
+}
+
+.alerta-atraso-ajuda {
+  margin: 0;
+  width: 100%;
+  font-size: 0.82rem;
+  color: var(--cor-texto-suave);
+}

@@ -49,6 +49,7 @@ export interface ContaParaValores {
   pontosUsados?: number;
   valorDoPonto?: unknown;
   cupom?: { percentual: unknown; valor: unknown; minimo: unknown } | null;
+  taxaEntrega?: unknown;
 }
 
 // Número a partir de um campo Decimal ou ausente; o que não é número vale 0.
@@ -70,6 +71,7 @@ export function valoresDaConta(
   descontoManual: number;
   desconto: number;
   taxa: number;
+  taxaEntrega: number;
   total: number;
   pago: number;
   restante: number;
@@ -100,7 +102,9 @@ export function valoresDaConta(
   const desconto = sub - resta;
   const base = sub - desconto;
   const taxa = conta && conta.taxaServico ? Math.round((base * numero(conta.taxaPercentual)) / 100) : 0;
-  const total = base + taxa;
+  // Taxa de entrega (delivery): soma no total, sem taxa de serviço em cima.
+  const entrega = centavos(numero(conta?.taxaEntrega));
+  const total = base + taxa + entrega;
   const quitado = centavos(pago);
   return {
     subtotal: reais(sub),
@@ -109,6 +113,7 @@ export function valoresDaConta(
     descontoManual: reais(descontoManual),
     desconto: reais(desconto),
     taxa: reais(taxa),
+    taxaEntrega: reais(entrega),
     total: reais(total),
     pago: reais(quitado),
     restante: reais(Math.max(0, total - quitado)),

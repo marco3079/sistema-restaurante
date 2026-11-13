@@ -26,7 +26,7 @@ function vazioViraNulo(valor: string | null | undefined): string | null | undefi
 }
 
 async function mesaLivre(mesaId: number) {
-  const mesa = await prisma.mesa.findUnique({ where: { id: mesaId } });
+  const mesa = await prisma.mesa.findUnique({ where: { id: mesaId, tipo: 'SALAO' } });
   if (!mesa || !mesa.ativa) {
     throw new HttpError(400, 'Mesa não encontrada ou desativada');
   }
@@ -165,7 +165,10 @@ const reservaCampos = {
 // Mesma mesa não recebe duas reservas ativas a menos de duas horas uma da outra.
 async function garantirMesaDisponivel(mesaId: number | null | undefined, quando: Date, ignorarId?: number) {
   if (!mesaId) return;
-  const mesa = await prisma.mesa.findUnique({ where: { id: mesaId }, select: { ativa: true, numero: true } });
+  const mesa = await prisma.mesa.findUnique({
+    where: { id: mesaId, tipo: 'SALAO' },
+    select: { ativa: true, numero: true },
+  });
   if (!mesa || !mesa.ativa) {
     throw new HttpError(400, 'Mesa não encontrada ou desativada');
   }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../../lib/prisma';
 import { asyncHandler, HttpError, idParam, validar } from '../../lib/erros';
 import { permitir } from '../../lib/auth';
+import { exigirAcao } from '../../lib/autorizacao';
 import { centavos, contaAberta } from '../../lib/contas';
 import { carregarConta, fecharSeQuitada } from '../../lib/pagamentos';
 import { lerConfiguracao } from '../../lib/email';
@@ -14,7 +15,6 @@ const router = Router();
 
 const garcons = permitir('GESTOR', 'GARCOM');
 const equipeComRecepcao = permitir('GESTOR', 'GARCOM', 'RECEPCAO');
-const soGestor = permitir('GESTOR');
 
 function reaisTexto(valor: number): string {
   return valor.toFixed(2).replace('.', ',');
@@ -177,6 +177,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const mesaId = idParam(req);
     const dados = validar(pontosSchema, req.body);
+    await exigirAcao(req, 'USAR_PONTOS');
     const conta = await contaParaMudar(mesaId);
     if (!conta.clienteId || !conta.cliente) {
       throw new HttpError(400, 'Ligue um cliente à conta para usar os pontos');
@@ -249,12 +250,14 @@ const descontoSchema = z.object({
   motivo: z.string().trim().max(120, 'Motivo muito longo').nullable().optional(),
 });
 
+// O desconto manual é do gestor; o garçom só com a regra DESCONTO_MANUAL liberada.
 router.put(
   '/mesas/:id/conta/desconto',
-  soGestor,
+  garcons,
   asyncHandler(async (req, res) => {
     const mesaId = idParam(req);
     const dados = validar(descontoSchema, req.body);
+    await exigirAcao(req, 'DESCONTO_MANUAL');
     const conta = await contaParaMudar(mesaId);
     const resumo = await carregarConta(mesaId);
     const valor = centavos(dados.valor);
